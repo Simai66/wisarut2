@@ -1,0 +1,545 @@
+import { useState, useEffect } from 'react';
+import {
+    Box,
+    TextField,
+    Button,
+    Typography,
+    Accordion,
+    AccordionSummary,
+    AccordionDetails,
+    IconButton,
+    Grid,
+    CircularProgress,
+    Alert,
+} from '@mui/material';
+import { ExpandMore, Add, Delete, Save } from '@mui/icons-material';
+import { motion } from 'framer-motion';
+import {
+    getAboutContent,
+    updateAboutContent,
+    getContactContent,
+    updateContactContent,
+} from '@/services/contentService';
+import type { AboutContent, ContactContent } from '@/types';
+import { useUIStore } from '@/stores/uiStore';
+
+/**
+ * Admin content editor for About and Contact pages
+ */
+export const ContentEditor = () => {
+    const [aboutContent, setAboutContent] = useState<AboutContent | null>(null);
+    const [contactContent, setContactContent] = useState<ContactContent | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const { showSnackbar } = useUIStore();
+
+    // Fetch content on mount
+    useEffect(() => {
+        const fetchContent = async () => {
+            try {
+                const [about, contact] = await Promise.all([
+                    getAboutContent(),
+                    getContactContent(),
+                ]);
+                setAboutContent(about);
+                setContactContent(contact);
+            } catch (err) {
+                setError('Failed to load content');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchContent();
+    }, []);
+
+    const handleSaveAbout = async () => {
+        if (!aboutContent) return;
+        setIsSaving(true);
+        try {
+            await updateAboutContent(aboutContent);
+            showSnackbar('About page updated successfully', 'success');
+        } catch {
+            showSnackbar('Failed to save about content', 'error');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleSaveContact = async () => {
+        if (!contactContent) return;
+        setIsSaving(true);
+        try {
+            await updateContactContent(contactContent);
+            showSnackbar('Contact page updated successfully', 'success');
+        } catch {
+            showSnackbar('Failed to save contact content', 'error');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+    if (error) {
+        return <Alert severity="error">{error}</Alert>;
+    }
+
+    return (
+        <Box>
+            <Typography variant="h5" fontWeight={600} sx={{ mb: 3 }}>
+                Edit Page Content
+            </Typography>
+
+            {/* About Page Editor */}
+            <Accordion
+                component={motion.div}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                defaultExpanded
+            >
+                <AccordionSummary expandIcon={<ExpandMore />}>
+                    <Typography variant="h6">About Page</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                    {aboutContent && (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <TextField
+                                label="Page Title"
+                                fullWidth
+                                value={aboutContent.title}
+                                onChange={(e) =>
+                                    setAboutContent({ ...aboutContent, title: e.target.value })
+                                }
+                            />
+                            <TextField
+                                label="Subtitle"
+                                fullWidth
+                                value={aboutContent.subtitle}
+                                onChange={(e) =>
+                                    setAboutContent({ ...aboutContent, subtitle: e.target.value })
+                                }
+                            />
+                            <TextField
+                                label="Hero Image URL"
+                                fullWidth
+                                value={aboutContent.heroImage}
+                                onChange={(e) =>
+                                    setAboutContent({ ...aboutContent, heroImage: e.target.value })
+                                }
+                            />
+                            <TextField
+                                label="Profile Image URL"
+                                fullWidth
+                                value={aboutContent.profileImage}
+                                onChange={(e) =>
+                                    setAboutContent({ ...aboutContent, profileImage: e.target.value })
+                                }
+                            />
+                            <TextField
+                                label="Story Title"
+                                fullWidth
+                                value={aboutContent.storyTitle}
+                                onChange={(e) =>
+                                    setAboutContent({ ...aboutContent, storyTitle: e.target.value })
+                                }
+                            />
+
+                            {/* Story Paragraphs */}
+                            <Typography variant="subtitle2" sx={{ mt: 2 }}>
+                                Story Paragraphs
+                            </Typography>
+                            {aboutContent.storyContent.map((paragraph, index) => (
+                                <Box key={index} sx={{ display: 'flex', gap: 1 }}>
+                                    <TextField
+                                        fullWidth
+                                        multiline
+                                        rows={2}
+                                        value={paragraph}
+                                        onChange={(e) => {
+                                            const newContent = [...aboutContent.storyContent];
+                                            newContent[index] = e.target.value;
+                                            setAboutContent({ ...aboutContent, storyContent: newContent });
+                                        }}
+                                    />
+                                    <IconButton
+                                        color="error"
+                                        onClick={() => {
+                                            const newContent = aboutContent.storyContent.filter(
+                                                (_, i) => i !== index
+                                            );
+                                            setAboutContent({ ...aboutContent, storyContent: newContent });
+                                        }}
+                                    >
+                                        <Delete />
+                                    </IconButton>
+                                </Box>
+                            ))}
+                            <Button
+                                startIcon={<Add />}
+                                onClick={() =>
+                                    setAboutContent({
+                                        ...aboutContent,
+                                        storyContent: [...aboutContent.storyContent, ''],
+                                    })
+                                }
+                            >
+                                Add Paragraph
+                            </Button>
+
+                            {/* Skills */}
+                            <Typography variant="subtitle2" sx={{ mt: 2 }}>
+                                Skills (comma separated)
+                            </Typography>
+                            <TextField
+                                fullWidth
+                                value={aboutContent.skills.join(', ')}
+                                onChange={(e) =>
+                                    setAboutContent({
+                                        ...aboutContent,
+                                        skills: e.target.value.split(',').map((s) => s.trim()),
+                                    })
+                                }
+                                helperText="Enter skills separated by commas"
+                            />
+
+                            {/* Stats */}
+                            <Typography variant="subtitle2" sx={{ mt: 2 }}>
+                                Stats
+                            </Typography>
+                            {aboutContent.stats.map((stat, index) => (
+                                <Grid container key={index} spacing={1} alignItems="center">
+                                    <Grid item xs={3}>
+                                        <TextField
+                                            fullWidth
+                                            label="Value"
+                                            value={stat.value}
+                                            onChange={(e) => {
+                                                const newStats = [...aboutContent.stats];
+                                                newStats[index] = { ...stat, value: e.target.value };
+                                                setAboutContent({ ...aboutContent, stats: newStats });
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={7}>
+                                        <TextField
+                                            fullWidth
+                                            label="Label"
+                                            value={stat.label}
+                                            onChange={(e) => {
+                                                const newStats = [...aboutContent.stats];
+                                                newStats[index] = { ...stat, label: e.target.value };
+                                                setAboutContent({ ...aboutContent, stats: newStats });
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={2}>
+                                        <IconButton
+                                            color="error"
+                                            onClick={() => {
+                                                const newStats = aboutContent.stats.filter(
+                                                    (_, i) => i !== index
+                                                );
+                                                setAboutContent({ ...aboutContent, stats: newStats });
+                                            }}
+                                        >
+                                            <Delete />
+                                        </IconButton>
+                                    </Grid>
+                                </Grid>
+                            ))}
+                            <Button
+                                startIcon={<Add />}
+                                onClick={() =>
+                                    setAboutContent({
+                                        ...aboutContent,
+                                        stats: [
+                                            ...aboutContent.stats,
+                                            { icon: 'camera', value: '', label: '' },
+                                        ],
+                                    })
+                                }
+                            >
+                                Add Stat
+                            </Button>
+
+                            {/* Equipment */}
+                            <Typography variant="subtitle2" sx={{ mt: 2 }}>
+                                Equipment
+                            </Typography>
+                            {aboutContent.equipment.map((item, index) => (
+                                <Grid container key={index} spacing={1} alignItems="center">
+                                    <Grid item xs={5}>
+                                        <TextField
+                                            fullWidth
+                                            label="Name"
+                                            value={item.name}
+                                            onChange={(e) => {
+                                                const newEquipment = [...aboutContent.equipment];
+                                                newEquipment[index] = { ...item, name: e.target.value };
+                                                setAboutContent({ ...aboutContent, equipment: newEquipment });
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={5}>
+                                        <TextField
+                                            fullWidth
+                                            label="Type"
+                                            value={item.type}
+                                            onChange={(e) => {
+                                                const newEquipment = [...aboutContent.equipment];
+                                                newEquipment[index] = { ...item, type: e.target.value };
+                                                setAboutContent({ ...aboutContent, equipment: newEquipment });
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={2}>
+                                        <IconButton
+                                            color="error"
+                                            onClick={() => {
+                                                const newEquipment = aboutContent.equipment.filter(
+                                                    (_, i) => i !== index
+                                                );
+                                                setAboutContent({ ...aboutContent, equipment: newEquipment });
+                                            }}
+                                        >
+                                            <Delete />
+                                        </IconButton>
+                                    </Grid>
+                                </Grid>
+                            ))}
+                            <Button
+                                startIcon={<Add />}
+                                onClick={() =>
+                                    setAboutContent({
+                                        ...aboutContent,
+                                        equipment: [...aboutContent.equipment, { name: '', type: '' }],
+                                    })
+                                }
+                            >
+                                Add Equipment
+                            </Button>
+
+                            {/* Save Button */}
+                            <Box sx={{ mt: 3 }}>
+                                <Button
+                                    variant="contained"
+                                    startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
+                                    onClick={handleSaveAbout}
+                                    disabled={isSaving}
+                                >
+                                    Save About Page
+                                </Button>
+                            </Box>
+                        </Box>
+                    )}
+                </AccordionDetails>
+            </Accordion>
+
+            {/* Contact Page Editor */}
+            <Accordion
+                component={motion.div}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                sx={{ mt: 2 }}
+            >
+                <AccordionSummary expandIcon={<ExpandMore />}>
+                    <Typography variant="h6">Contact Page</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                    {contactContent && (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <TextField
+                                label="Page Title"
+                                fullWidth
+                                value={contactContent.title}
+                                onChange={(e) =>
+                                    setContactContent({ ...contactContent, title: e.target.value })
+                                }
+                            />
+                            <TextField
+                                label="Subtitle"
+                                fullWidth
+                                value={contactContent.subtitle}
+                                onChange={(e) =>
+                                    setContactContent({ ...contactContent, subtitle: e.target.value })
+                                }
+                            />
+                            <TextField
+                                label="Hero Image URL"
+                                fullWidth
+                                value={contactContent.heroImage}
+                                onChange={(e) =>
+                                    setContactContent({ ...contactContent, heroImage: e.target.value })
+                                }
+                            />
+                            <TextField
+                                label="Email"
+                                fullWidth
+                                value={contactContent.email}
+                                onChange={(e) =>
+                                    setContactContent({ ...contactContent, email: e.target.value })
+                                }
+                            />
+                            <TextField
+                                label="Phone"
+                                fullWidth
+                                value={contactContent.phone}
+                                onChange={(e) =>
+                                    setContactContent({ ...contactContent, phone: e.target.value })
+                                }
+                            />
+                            <TextField
+                                label="Location"
+                                fullWidth
+                                value={contactContent.location}
+                                onChange={(e) =>
+                                    setContactContent({ ...contactContent, location: e.target.value })
+                                }
+                            />
+
+                            {/* Business Hours */}
+                            <Typography variant="subtitle2" sx={{ mt: 2 }}>
+                                Business Hours
+                            </Typography>
+                            {contactContent.businessHours.map((hours, index) => (
+                                <Grid container key={index} spacing={1} alignItems="center">
+                                    <Grid item xs={5}>
+                                        <TextField
+                                            fullWidth
+                                            label="Days"
+                                            value={hours.days}
+                                            onChange={(e) => {
+                                                const newHours = [...contactContent.businessHours];
+                                                newHours[index] = { ...hours, days: e.target.value };
+                                                setContactContent({ ...contactContent, businessHours: newHours });
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={5}>
+                                        <TextField
+                                            fullWidth
+                                            label="Hours"
+                                            value={hours.hours}
+                                            onChange={(e) => {
+                                                const newHours = [...contactContent.businessHours];
+                                                newHours[index] = { ...hours, hours: e.target.value };
+                                                setContactContent({ ...contactContent, businessHours: newHours });
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={2}>
+                                        <IconButton
+                                            color="error"
+                                            onClick={() => {
+                                                const newHours = contactContent.businessHours.filter(
+                                                    (_, i) => i !== index
+                                                );
+                                                setContactContent({ ...contactContent, businessHours: newHours });
+                                            }}
+                                        >
+                                            <Delete />
+                                        </IconButton>
+                                    </Grid>
+                                </Grid>
+                            ))}
+                            <Button
+                                startIcon={<Add />}
+                                onClick={() =>
+                                    setContactContent({
+                                        ...contactContent,
+                                        businessHours: [
+                                            ...contactContent.businessHours,
+                                            { days: '', hours: '' },
+                                        ],
+                                    })
+                                }
+                            >
+                                Add Hours
+                            </Button>
+
+                            {/* Social Links */}
+                            <Typography variant="subtitle2" sx={{ mt: 2 }}>
+                                Social Links
+                            </Typography>
+                            {contactContent.socialLinks.map((link, index) => (
+                                <Grid container key={index} spacing={1} alignItems="center">
+                                    <Grid item xs={3}>
+                                        <TextField
+                                            fullWidth
+                                            label="Platform"
+                                            value={link.platform}
+                                            onChange={(e) => {
+                                                const newLinks = [...contactContent.socialLinks];
+                                                newLinks[index] = { ...link, platform: e.target.value };
+                                                setContactContent({ ...contactContent, socialLinks: newLinks });
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={7}>
+                                        <TextField
+                                            fullWidth
+                                            label="URL"
+                                            value={link.url}
+                                            onChange={(e) => {
+                                                const newLinks = [...contactContent.socialLinks];
+                                                newLinks[index] = { ...link, url: e.target.value };
+                                                setContactContent({ ...contactContent, socialLinks: newLinks });
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={2}>
+                                        <IconButton
+                                            color="error"
+                                            onClick={() => {
+                                                const newLinks = contactContent.socialLinks.filter(
+                                                    (_, i) => i !== index
+                                                );
+                                                setContactContent({ ...contactContent, socialLinks: newLinks });
+                                            }}
+                                        >
+                                            <Delete />
+                                        </IconButton>
+                                    </Grid>
+                                </Grid>
+                            ))}
+                            <Button
+                                startIcon={<Add />}
+                                onClick={() =>
+                                    setContactContent({
+                                        ...contactContent,
+                                        socialLinks: [
+                                            ...contactContent.socialLinks,
+                                            { platform: '', url: '' },
+                                        ],
+                                    })
+                                }
+                            >
+                                Add Social Link
+                            </Button>
+
+                            {/* Save Button */}
+                            <Box sx={{ mt: 3 }}>
+                                <Button
+                                    variant="contained"
+                                    startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
+                                    onClick={handleSaveContact}
+                                    disabled={isSaving}
+                                >
+                                    Save Contact Page
+                                </Button>
+                            </Box>
+                        </Box>
+                    )}
+                </AccordionDetails>
+            </Accordion>
+        </Box>
+    );
+};
