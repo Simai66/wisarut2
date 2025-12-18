@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { createAppTheme } from '@/config/theme';
@@ -8,7 +8,7 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { ProtectedRoute } from '@/components/admin/ProtectedRoute';
 import { useUIStore } from '@/stores/uiStore';
 import { useAuthStore } from '@/stores/authStore';
-import { initializeDefaultContent } from '@/services/contentService';
+import { initializeDefaultContent, getHomeContent } from '@/services/contentService';
 
 // Pages
 import { Home, Gallery, AlbumDetail, About, Contact, Login, Admin } from '@/pages';
@@ -19,11 +19,27 @@ import { Home, Gallery, AlbumDetail, About, Contact, Login, Admin } from '@/page
 function App() {
   const { darkMode } = useUIStore();
   const { initializeAuth } = useAuthStore();
+  const [primaryColor, setPrimaryColor] = useState<string | undefined>(undefined);
 
-  // Create theme based on dark mode
+  // Load primary color on mount
+  useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        const content = await getHomeContent();
+        if (content.primaryColor) {
+          setPrimaryColor(content.primaryColor);
+        }
+      } catch (e) {
+        console.error('Failed to load theme color:', e);
+      }
+    };
+    loadTheme();
+  }, []);
+
+  // Create theme based on dark mode and primary color
   const theme = useMemo(
-    () => createAppTheme(darkMode ? 'dark' : 'light'),
-    [darkMode]
+    () => createAppTheme(darkMode ? 'dark' : 'light', primaryColor),
+    [darkMode, primaryColor]
   );
 
   // Initialize auth on mount

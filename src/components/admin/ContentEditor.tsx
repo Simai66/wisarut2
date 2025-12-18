@@ -228,12 +228,82 @@ export const ContentEditor = () => {
                                 value={homeContent.featuredSectionSubtitle}
                                 onChange={(e) => setHomeContent({ ...homeContent, featuredSectionSubtitle: e.target.value })}
                             />
+
+                            {/* Social Links */}
+                            <Typography variant="subtitle1" fontWeight={600} sx={{ mt: 2 }}>
+                                Social Links
+                            </Typography>
+                            <TextField
+                                label="Instagram URL"
+                                fullWidth
+                                value={homeContent.instagramUrl || ''}
+                                onChange={(e) => setHomeContent({ ...homeContent, instagramUrl: e.target.value })}
+                                placeholder="https://instagram.com/yourprofile"
+                            />
+                            <TextField
+                                label="Twitter URL"
+                                fullWidth
+                                value={homeContent.twitterUrl || ''}
+                                onChange={(e) => setHomeContent({ ...homeContent, twitterUrl: e.target.value })}
+                                placeholder="https://twitter.com/yourprofile"
+                            />
+                            <TextField
+                                label="Facebook URL"
+                                fullWidth
+                                value={homeContent.facebookUrl || ''}
+                                onChange={(e) => setHomeContent({ ...homeContent, facebookUrl: e.target.value })}
+                                placeholder="https://facebook.com/yourprofile"
+                            />
+
+                            {/* Theme Settings */}
+                            <Typography variant="subtitle1" fontWeight={600} sx={{ mt: 2 }}>
+                                Theme Settings
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                                <TextField
+                                    label="Primary Color"
+                                    value={homeContent.primaryColor || '#D4AF37'}
+                                    onChange={(e) => setHomeContent({ ...homeContent, primaryColor: e.target.value })}
+                                    helperText="Hex color code (e.g., #D4AF37)"
+                                    sx={{ flex: 1 }}
+                                />
+                                <Box
+                                    sx={{
+                                        width: 48,
+                                        height: 48,
+                                        borderRadius: 1,
+                                        backgroundColor: homeContent.primaryColor || '#D4AF37',
+                                        border: '2px solid',
+                                        borderColor: 'divider',
+                                    }}
+                                />
+                                <input
+                                    type="color"
+                                    value={homeContent.primaryColor || '#D4AF37'}
+                                    onChange={(e) => setHomeContent({ ...homeContent, primaryColor: e.target.value })}
+                                    style={{ width: 48, height: 48, cursor: 'pointer', border: 'none' }}
+                                />
+                            </Box>
+
+                            {/* ImgBB Settings */}
+                            <Typography variant="subtitle1" fontWeight={600} sx={{ mt: 2 }}>
+                                ImgBB Settings
+                            </Typography>
+                            <TextField
+                                label="ImgBB API Key"
+                                fullWidth
+                                type="password"
+                                value={homeContent.imgbbApiKey || ''}
+                                onChange={(e) => setHomeContent({ ...homeContent, imgbbApiKey: e.target.value })}
+                                helperText="Get your API key from https://api.imgbb.com/"
+                            />
+
                             <Button
                                 variant="contained"
                                 startIcon={<Save />}
                                 onClick={handleSaveHome}
                                 disabled={isSaving}
-                                sx={{ alignSelf: 'flex-start' }}
+                                sx={{ alignSelf: 'flex-start', mt: 2 }}
                             >
                                 {isSaving ? 'Saving...' : 'Save Home Page'}
                             </Button>

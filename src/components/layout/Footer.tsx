@@ -10,24 +10,26 @@ import { getHomeContent, defaultHomeContent } from '@/services/contentService';
 export const Footer = () => {
     const currentYear = new Date().getFullYear();
     const [siteName, setSiteName] = useState(defaultHomeContent.siteName);
+    const [socialLinks, setSocialLinks] = useState<{ icon: React.ReactNode; href: string; label: string }[]>([]);
 
     useEffect(() => {
-        const loadSiteName = async () => {
+        const loadContent = async () => {
             try {
                 const content = await getHomeContent();
                 setSiteName(content.siteName);
+
+                // Build social links array (only include non-empty URLs)
+                const links: { icon: React.ReactNode; href: string; label: string }[] = [];
+                if (content.instagramUrl) links.push({ icon: <Instagram />, href: content.instagramUrl, label: 'Instagram' });
+                if (content.twitterUrl) links.push({ icon: <Twitter />, href: content.twitterUrl, label: 'Twitter' });
+                if (content.facebookUrl) links.push({ icon: <Facebook />, href: content.facebookUrl, label: 'Facebook' });
+                setSocialLinks(links);
             } catch (e) {
-                console.error('Failed to load site name:', e);
+                console.error('Failed to load footer content:', e);
             }
         };
-        loadSiteName();
+        loadContent();
     }, []);
-
-    const socialLinks = [
-        { icon: <Instagram />, href: '#', label: 'Instagram' },
-        { icon: <Twitter />, href: '#', label: 'Twitter' },
-        { icon: <Facebook />, href: '#', label: 'Facebook' },
-    ];
 
     return (
         <Box

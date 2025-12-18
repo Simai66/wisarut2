@@ -19,6 +19,7 @@ import { motion } from 'framer-motion';
 import { AlbumManager } from '@/components/admin/AlbumManager';
 import { PhotoManager } from '@/components/admin/PhotoManager';
 import { ContentEditor } from '@/components/admin/ContentEditor';
+import { ImgBBUploader } from '@/components/admin/ImgBBUploader';
 import { useAlbums } from '@/hooks/useAlbums';
 import { useUIStore } from '@/stores/uiStore';
 import { createPhoto } from '@/services/photoService';
@@ -305,64 +306,83 @@ export const Admin = () => {
                     <Tabs
                         value={tabValue}
                         onChange={handleTabChange}
-                        sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}
+                        variant="scrollable"
+                        scrollButtons="auto"
+                        sx={{
+                            borderBottom: 1,
+                            borderColor: 'divider',
+                            px: { xs: 0, sm: 2 },
+                            '& .MuiTab-root': {
+                                minHeight: { xs: 48, sm: 64 },
+                                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                                px: { xs: 1.5, sm: 2 },
+                            },
+                        }}
                     >
                         <Tab
                             icon={<PhotoLibrary />}
                             iconPosition="start"
-                            label="Add Photo Links"
-                            sx={{ minHeight: 64 }}
+                            label="Add Photos"
                         />
                         <Tab
                             icon={<Image />}
                             iconPosition="start"
-                            label="Manage Photos"
-                            sx={{ minHeight: 64 }}
+                            label="Manage"
                         />
                         <Tab
                             icon={<Collections />}
                             iconPosition="start"
-                            label="Manage Albums"
-                            sx={{ minHeight: 64 }}
+                            label="Albums"
                         />
                         <Tab
                             icon={<Edit />}
                             iconPosition="start"
-                            label="Edit Pages"
-                            sx={{ minHeight: 64 }}
+                            label="Pages"
                         />
                     </Tabs>
 
-                    <Box sx={{ p: 3 }}>
+                    <Box sx={{ p: { xs: 2, sm: 3 } }}>
                         <TabPanel value={tabValue} index={0}>
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 900 }}>
-                                <Typography variant="h6" fontWeight={600}>
-                                    Paste ImgBB links
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary">
-                                    Upload your image(s) to ImgBB first, then paste the direct image URL(s) here.
-                                    You can paste many URLs at once (multiple per line is OK). Optional: use <strong>url | thumbnailUrl</strong> per line.
-                                </Typography>
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    minRows={6}
-                                    label="Image URLs"
-                                    placeholder="https://i.ibb.co/.../image.jpg\nhttps://i.ibb.co/.../another.png\n\n# or: https://i.ibb.co/.../a.jpg https://i.ibb.co/.../b.jpg\n# or: https://i.ibb.co/.../a.jpg | https://i.ibb.co/.../a-thumb.jpg"
-                                    value={photoLinksText}
-                                    onChange={(e) => setPhotoLinksText(e.target.value)}
-                                />
-                                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                                    <Button
-                                        variant="contained"
-                                        onClick={handleAddPhotoLinks}
-                                        disabled={isBusy || photoLinksText.trim().length === 0}
-                                    >
-                                        {isBusy ? 'Adding...' : 'Add Photos'}
-                                    </Button>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Creates D1 records from the pasted URLs.
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 900 }}>
+                                {/* Direct Upload */}
+                                <Box>
+                                    <Typography variant="h6" fontWeight={600} gutterBottom>
+                                        Upload Images Directly
                                     </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                        Drag & drop images or click to upload. Requires ImgBB API key (set in Edit Pages &gt; Home Page).
+                                    </Typography>
+                                    <ImgBBUploader
+                                        onSuccess={refetchAlbums}
+                                        showSnackbar={setFeedback}
+                                    />
+                                </Box>
+
+                                <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 3 }}>
+                                    <Typography variant="h6" fontWeight={600} gutterBottom>
+                                        Or Paste ImgBB Links
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                        Already uploaded to ImgBB? Paste the direct image URL(s) here.
+                                    </Typography>
+                                    <TextField
+                                        fullWidth
+                                        multiline
+                                        minRows={4}
+                                        label="Image URLs"
+                                        placeholder="https://i.ibb.co/.../image.jpg\nhttps://i.ibb.co/.../another.png"
+                                        value={photoLinksText}
+                                        onChange={(e) => setPhotoLinksText(e.target.value)}
+                                    />
+                                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2 }}>
+                                        <Button
+                                            variant="contained"
+                                            onClick={handleAddPhotoLinks}
+                                            disabled={isBusy || photoLinksText.trim().length === 0}
+                                        >
+                                            {isBusy ? 'Adding...' : 'Add Photos'}
+                                        </Button>
+                                    </Box>
                                 </Box>
                             </Box>
                         </TabPanel>

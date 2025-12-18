@@ -20,9 +20,28 @@ import {
     Typography,
     Chip,
     CircularProgress,
+    Alert,
 } from '@mui/material';
-import { Edit, Delete } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Edit, Delete, DragIndicator } from '@mui/icons-material';
+import { AnimatePresence } from 'framer-motion';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    TouchSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { Photo, Album, PhotoFormData } from '@/types';
 import { getPhotos, updatePhoto, deletePhoto } from '@/services/photoService';
 
@@ -39,8 +58,95 @@ interface EditFormData {
     tags: string;
 }
 
+interface SortablePhotoCardProps {
+    photo: Photo;
+    onEdit: (photo: Photo) => void;
+    onDelete: (photo: Photo) => void;
+}
+
 /**
- * Photo management component (Edit/Delete)
+ * Sortable photo card component
+ */
+const SortablePhotoCard = ({ photo, onEdit, onDelete }: SortablePhotoCardProps) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: photo.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 1000 : 'auto',
+    };
+
+    return (
+        <Grid item xs={6} sm={4} md={3} lg={2} ref={setNodeRef} style={style}>
+            <Card
+                sx={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    cursor: isDragging ? 'grabbing' : 'default',
+                }}
+            >
+                {/* Drag Handle */}
+                <Box
+                    {...attributes}
+                    {...listeners}
+                    sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        py: 0.5,
+                        cursor: 'grab',
+                        backgroundColor: 'action.hover',
+                        '&:hover': { backgroundColor: 'action.selected' },
+                    }}
+                >
+                    <DragIndicator fontSize="small" color="action" />
+                </Box>
+                <CardMedia
+                    component="img"
+                    height="120"
+                    image={photo.thumbnail || photo.url}
+                    alt={photo.title}
+                    sx={{ objectFit: 'cover' }}
+                />
+                <CardContent sx={{ flexGrow: 1, py: 1, px: 1.5 }}>
+                    <Typography variant="body2" fontWeight={500} noWrap>
+                        {photo.title || 'Untitled'}
+                    </Typography>
+                    {photo.tags.length > 0 && (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                            {photo.tags.slice(0, 2).map((tag) => (
+                                <Chip key={tag} label={tag} size="small" sx={{ fontSize: '0.65rem', height: 18 }} />
+                            ))}
+                            {photo.tags.length > 2 && (
+                                <Chip label={`+${photo.tags.length - 2}`} size="small" sx={{ fontSize: '0.65rem', height: 18 }} />
+                            )}
+                        </Box>
+                    )}
+                </CardContent>
+                <CardActions sx={{ pt: 0, justifyContent: 'space-between' }}>
+                    <IconButton size="small" onClick={() => onEdit(photo)}>
+                        <Edit fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" color="error" onClick={() => onDelete(photo)}>
+                        <Delete fontSize="small" />
+                    </IconButton>
+                </CardActions>
+            </Card>
+        </Grid>
+    );
+};
+
+/**
+ * Photo management component with drag-drop reordering
  */
 export const PhotoManager = ({ albums, onRefetch, showSnackbar }: PhotoManagerProps) => {
     const [photos, setPhotos] = useState<Photo[]>([]);
@@ -49,6 +155,7 @@ export const PhotoManager = ({ albums, onRefetch, showSnackbar }: PhotoManagerPr
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+    const [hasReordered, setHasReordered] = useState(false);
     const [editForm, setEditForm] = useState<EditFormData>({
         title: '',
         description: '',
@@ -56,11 +163,31 @@ export const PhotoManager = ({ albums, onRefetch, showSnackbar }: PhotoManagerPr
         tags: '',
     });
 
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 200,
+                tolerance: 5,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
     const fetchPhotos = useCallback(async () => {
         setIsLoading(true);
         try {
             const result = await getPhotos(200);
-            setPhotos(result.photos);
+            // Sort by order field
+            const sorted = result.photos.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+            setPhotos(sorted);
+            setHasReordered(false);
         } catch (error) {
             console.error('Failed to fetch photos:', error);
             showSnackbar('Failed to load photos', 'error');
@@ -72,6 +199,38 @@ export const PhotoManager = ({ albums, onRefetch, showSnackbar }: PhotoManagerPr
     useEffect(() => {
         fetchPhotos();
     }, [fetchPhotos]);
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (over && active.id !== over.id) {
+            setPhotos((items) => {
+                const oldIndex = items.findIndex((item) => item.id === active.id);
+                const newIndex = items.findIndex((item) => item.id === over.id);
+                return arrayMove(items, oldIndex, newIndex);
+            });
+            setHasReordered(true);
+        }
+    };
+
+    const handleSaveOrder = async () => {
+        setIsSaving(true);
+        try {
+            // Update order for all photos
+            const updates = photos.map((photo, index) =>
+                updatePhoto(photo.id, { order: index })
+            );
+            await Promise.all(updates);
+            showSnackbar('Order saved successfully', 'success');
+            setHasReordered(false);
+            onRefetch?.();
+        } catch (error) {
+            console.error('Failed to save order:', error);
+            showSnackbar('Failed to save order', 'error');
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const handleOpenEdit = (photo: Photo) => {
         setSelectedPhoto(photo);
@@ -143,64 +302,55 @@ export const PhotoManager = ({ albums, onRefetch, showSnackbar }: PhotoManagerPr
     return (
         <Box>
             {/* Header */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h5" fontWeight={600}>
                     Manage Photos ({photos.length})
                 </Typography>
-                <Button variant="outlined" onClick={fetchPhotos}>
-                    Refresh
-                </Button>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                    {hasReordered && (
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={handleSaveOrder}
+                            disabled={isSaving}
+                        >
+                            {isSaving ? 'Saving...' : 'Save Order'}
+                        </Button>
+                    )}
+                    <Button variant="outlined" onClick={fetchPhotos}>
+                        Refresh
+                    </Button>
+                </Box>
             </Box>
+
+            {/* Reorder hint */}
+            <Alert severity="info" sx={{ mb: 2 }}>
+                🔄 Drag the ⋮⋮ handle on each photo to reorder. Click "Save Order" when done. <strong>(PC only)</strong>
+            </Alert>
 
             {photos.length === 0 ? (
                 <Typography color="text.secondary">No photos yet. Add some from the "Add Photo Links" tab.</Typography>
             ) : (
-                <Grid container spacing={2}>
-                    <AnimatePresence>
-                        {photos.map((photo) => (
-                            <Grid item key={photo.id} xs={6} sm={4} md={3} lg={2}>
-                                <Card
-                                    component={motion.div}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-                                >
-                                    <CardMedia
-                                        component="img"
-                                        height="120"
-                                        image={photo.thumbnail || photo.url}
-                                        alt={photo.title}
-                                        sx={{ objectFit: 'cover' }}
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                >
+                    <SortableContext items={photos.map(p => p.id)} strategy={rectSortingStrategy}>
+                        <Grid container spacing={2}>
+                            <AnimatePresence>
+                                {photos.map((photo) => (
+                                    <SortablePhotoCard
+                                        key={photo.id}
+                                        photo={photo}
+                                        onEdit={handleOpenEdit}
+                                        onDelete={handleOpenDelete}
                                     />
-                                    <CardContent sx={{ flexGrow: 1, py: 1, px: 1.5 }}>
-                                        <Typography variant="body2" fontWeight={500} noWrap>
-                                            {photo.title || 'Untitled'}
-                                        </Typography>
-                                        {photo.tags.length > 0 && (
-                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                                                {photo.tags.slice(0, 2).map((tag) => (
-                                                    <Chip key={tag} label={tag} size="small" sx={{ fontSize: '0.65rem', height: 18 }} />
-                                                ))}
-                                                {photo.tags.length > 2 && (
-                                                    <Chip label={`+${photo.tags.length - 2}`} size="small" sx={{ fontSize: '0.65rem', height: 18 }} />
-                                                )}
-                                            </Box>
-                                        )}
-                                    </CardContent>
-                                    <CardActions sx={{ pt: 0, justifyContent: 'space-between' }}>
-                                        <IconButton size="small" onClick={() => handleOpenEdit(photo)}>
-                                            <Edit fontSize="small" />
-                                        </IconButton>
-                                        <IconButton size="small" color="error" onClick={() => handleOpenDelete(photo)}>
-                                            <Delete fontSize="small" />
-                                        </IconButton>
-                                    </CardActions>
-                                </Card>
-                            </Grid>
-                        ))}
-                    </AnimatePresence>
-                </Grid>
+                                ))}
+                            </AnimatePresence>
+                        </Grid>
+                    </SortableContext>
+                </DndContext>
             )}
 
             {/* Edit Dialog */}

@@ -116,6 +116,14 @@ export interface HomeContent {
     heroButtonText: string;
     featuredSectionTitle: string;
     featuredSectionSubtitle: string;
+    // Social Links
+    instagramUrl: string;
+    twitterUrl: string;
+    facebookUrl: string;
+    // Theme
+    primaryColor: string;
+    // ImgBB
+    imgbbApiKey: string;
     updatedAt?: Date;
 }
 
@@ -127,6 +135,14 @@ export const defaultHomeContent: Omit<HomeContent, 'id' | 'updatedAt'> = {
     heroButtonText: 'View Gallery',
     featuredSectionTitle: 'Recent Captures',
     featuredSectionSubtitle: 'Featured Work',
+    // Social Links
+    instagramUrl: '',
+    twitterUrl: '',
+    facebookUrl: '',
+    // Theme
+    primaryColor: '#D4AF37',  // Gold
+    // ImgBB
+    imgbbApiKey: '',
 };
 
 /**
