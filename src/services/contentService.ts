@@ -109,6 +109,7 @@ export const initializeDefaultContent = async (): Promise<void> => {
 
 export interface HomeContent {
     id: string;
+    siteName: string;
     heroTitle: string;
     heroSubtitle: string;
     heroBackgroundUrl: string;
@@ -119,6 +120,7 @@ export interface HomeContent {
 }
 
 export const defaultHomeContent: Omit<HomeContent, 'id' | 'updatedAt'> = {
+    siteName: 'PHOTO GALLERY',
     heroTitle: 'Capturing Moments',
     heroSubtitle: 'A visual journey through light, shadow, and emotion. Explore the world through my lens.',
     heroBackgroundUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920',

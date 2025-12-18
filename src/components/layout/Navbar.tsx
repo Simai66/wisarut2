@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import {
     AppBar,
@@ -29,6 +29,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useUIStore } from '@/stores/uiStore';
 import { NAV_ITEMS, ROUTES } from '@/config/routes';
+import { getHomeContent, defaultHomeContent } from '@/services/contentService';
 
 /**
  * Main navigation bar component
@@ -43,6 +44,19 @@ export const Navbar = () => {
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [siteName, setSiteName] = useState(defaultHomeContent.siteName);
+
+    useEffect(() => {
+        const loadSiteName = async () => {
+            try {
+                const content = await getHomeContent();
+                setSiteName(content.siteName);
+            } catch (e) {
+                console.error('Failed to load site name:', e);
+            }
+        };
+        loadSiteName();
+    }, []);
 
     const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -227,7 +241,7 @@ export const Navbar = () => {
                         fontSize: '1.25rem',
                     }}
                 >
-                    PHOTO GALLERY
+                    {siteName}
                 </Typography>
 
                 {/* Desktop Navigation */}

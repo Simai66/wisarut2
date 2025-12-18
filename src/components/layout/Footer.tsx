@@ -1,12 +1,27 @@
+import { useState, useEffect } from 'react';
 import { Box, Container, Typography, IconButton, Link as MuiLink } from '@mui/material';
 import { Instagram, Twitter, Facebook } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { getHomeContent, defaultHomeContent } from '@/services/contentService';
 
 /**
  * Footer component
  */
 export const Footer = () => {
     const currentYear = new Date().getFullYear();
+    const [siteName, setSiteName] = useState(defaultHomeContent.siteName);
+
+    useEffect(() => {
+        const loadSiteName = async () => {
+            try {
+                const content = await getHomeContent();
+                setSiteName(content.siteName);
+            } catch (e) {
+                console.error('Failed to load site name:', e);
+            }
+        };
+        loadSiteName();
+    }, []);
 
     const socialLinks = [
         { icon: <Instagram />, href: '#', label: 'Instagram' },
@@ -44,7 +59,7 @@ export const Footer = () => {
                             variant="h6"
                             sx={{ fontWeight: 700, letterSpacing: '0.1em', mb: 1 }}
                         >
-                            PHOTO GALLERY
+                            {siteName}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                             © {currentYear} All rights reserved.

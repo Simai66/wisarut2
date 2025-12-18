@@ -180,6 +180,13 @@ export const ContentEditor = () => {
                     {homeContent && (
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                             <TextField
+                                label="Site Name"
+                                fullWidth
+                                value={homeContent.siteName}
+                                onChange={(e) => setHomeContent({ ...homeContent, siteName: e.target.value })}
+                                helperText="Displays in navbar and footer (e.g., PHOTO GALLERY)"
+                            />
+                            <TextField
                                 label="Hero Title"
                                 fullWidth
                                 value={homeContent.heroTitle}
