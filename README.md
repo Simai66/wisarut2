@@ -1,115 +1,145 @@
 # 📸 Photo Gallery Website
 
-A production-ready, modern photo gallery website built with React 18, TypeScript, and Firebase. Features a stunning minimalist design, masonry grid gallery, admin dashboard, and seamless deployment options.
+A modern, production-ready photo gallery website built with React 18, TypeScript, and Cloudflare D1. Features a stunning minimalist design, masonry grid gallery, fully customizable admin dashboard, and seamless deployment.
 
 ![React](https://img.shields.io/badge/React-18.x-61DAFB?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)
-![Firebase](https://img.shields.io/badge/Firebase-10.x-FFCA28?logo=firebase)
-![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite)
+![Cloudflare](https://img.shields.io/badge/Cloudflare_D1-SQLite-F38020?logo=cloudflare)
+![Firebase](https://img.shields.io/badge/Firebase_Auth-10.x-FFCA28?logo=firebase)
+![Vite](https://img.shields.io/badge/Vite-7.x-646CFF?logo=vite)
+
+## 🌐 Live Demo
+
+**https://photo-wisarut.web.app**
 
 ## ✨ Features
 
+### Gallery & Display
 - **🖼️ Stunning Gallery** - Responsive masonry grid with smooth animations
 - **🔍 Search & Filter** - Find photos by title, tags, or album
 - **💡 Lightbox Viewer** - Full-screen image viewing with keyboard navigation
 - **🌓 Dark/Light Mode** - Persistent theme preference
 - **📱 Mobile Responsive** - Beautiful on all devices
-- **🔐 Admin Dashboard** - Upload photos and manage albums
-- **🔥 Firebase Integration** - Auth, Firestore, and Storage
+
+### Admin Dashboard
+- **📝 Home Page Editor** - Customize hero title, subtitle, background image, CTA button
+- **🏷️ Site Name Editor** - Change "PHOTO GALLERY" text in navbar/footer
+- **📄 About & Contact Editors** - Edit page content directly
+- **🖼️ Photo Management** - Add via URL, edit title/tags/album, delete
+- **📁 Album Management** - Create, update, delete albums
+
+### Technical
+- **☁️ Cloudflare D1 Database** - Fast, reliable SQLite at the edge
+- **🔐 Firebase Authentication** - Google sign-in for admin access
 - **⚡ Fast Performance** - Code splitting and lazy loading
 - **🎨 Modern Design** - Minimalist, professional portfolio style
 
 ## 🛠️ Tech Stack
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| React | 18.x | UI Framework |
-| Vite | 5.x | Build Tool |
-| TypeScript | 5.x (Strict) | Type Safety |
-| MUI | 5.x | UI Components |
-| Zustand | 4.x | State Management |
-| Firebase | 10.x | Backend Services |
-| React Router | 6.x | Routing |
-| Framer Motion | 11.x | Animations |
-| react-masonry-css | 1.x | Gallery Layout |
+| Technology | Purpose |
+|------------|---------|
+| React 18 | UI Framework |
+| Vite 7 | Build Tool |
+| TypeScript 5 (Strict) | Type Safety |
+| MUI 5 | UI Components |
+| Zustand 4 | State Management |
+| Cloudflare D1 | Database (SQLite) |
+| Cloudflare Workers | API Backend |
+| Firebase Auth | Authentication |
+| React Router 6 | Routing |
+| Framer Motion 11 | Animations |
 
 ## 📁 Project Structure
 
 ```
-src/
-├── components/          # Reusable UI components
-│   ├── admin/          # Admin-specific components
-│   ├── common/         # Shared components
-│   ├── gallery/        # Gallery components
-│   └── layout/         # Layout components
-├── config/             # App configuration
-├── hooks/              # Custom React hooks
-├── pages/              # Route pages
-├── services/           # Firebase API services
-├── stores/             # Zustand state stores
-├── types/              # TypeScript interfaces
-└── utils/              # Helper functions
+├── cloudflare-worker/    # D1 API backend
+│   ├── api.js           # Worker API endpoints
+│   ├── schema.sql       # Database schema
+│   └── wrangler.toml    # Worker config
+├── src/
+│   ├── components/      # Reusable UI components
+│   │   ├── admin/      # Admin components (PhotoManager, AlbumManager, ContentEditor)
+│   │   ├── common/     # Shared components
+│   │   ├── gallery/    # Gallery components
+│   │   └── layout/     # Layout components (Navbar, Footer)
+│   ├── config/         # App configuration
+│   ├── hooks/          # Custom React hooks
+│   ├── pages/          # Route pages
+│   ├── services/       # API services (photoService, albumService, contentService)
+│   ├── stores/         # Zustand state stores
+│   ├── types/          # TypeScript interfaces
+│   └── utils/          # Helper functions
 ```
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- Firebase account
-- Git
+- Node.js 18+
+- Cloudflare account (for D1 database)
+- Firebase account (for authentication)
 
 ### 1. Clone and Install
 
 ```bash
-# Clone the repository
-git clone <your-repo-url>
-cd photo3
-
-# Install dependencies
+git clone https://github.com/Simai66/wisarut2.git
+cd wisarut2
 npm install
 ```
 
-### 2. Firebase Setup
+### 2. Setup Cloudflare D1
 
-1. **Create Firebase Project**
-   - Go to [Firebase Console](https://console.firebase.google.com/)
-   - Click "Add project" and follow the setup wizard
-   - Enable Google Analytics (optional)
+```bash
+cd cloudflare-worker
 
-2. **Enable Firebase Services**
-   - **Authentication**: Enable Google sign-in provider
-   - **Firestore**: Create database in production mode
-   - **Storage**: Create default bucket
+# Install Wrangler CLI
+npm install -g wrangler
 
-3. **Get Firebase Config**
-   - Go to Project Settings > General
-   - Scroll to "Your apps" and click "Add app" (Web)
-   - Copy the configuration object
+# Login to Cloudflare
+wrangler login
 
-4. **Configure Environment**
-   ```bash
-   # Copy example env file
-   cp .env.example .env
-   
-   # Edit .env with your Firebase config
-   ```
+# Create D1 database
+wrangler d1 create photo-gallery
 
-   ```env
-   VITE_FIREBASE_API_KEY=your_api_key
-   VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-   VITE_FIREBASE_PROJECT_ID=your_project_id
-   VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   VITE_FIREBASE_APP_ID=your_app_id
-   VITE_ADMIN_EMAIL=your_admin_email@gmail.com
-   ```
+# Update wrangler.toml with your database_id
 
-5. **Deploy Security Rules**
-   - Update `YOUR_ADMIN_EMAIL@gmail.com` in `firestore.rules` and `storage.rules`
-   - Deploy rules via Firebase CLI or console
+# Apply schema
+wrangler d1 execute photo-gallery --file=schema.sql
 
-### 3. Run Development Server
+# Deploy Worker API
+wrangler deploy
+```
+
+### 3. Setup Firebase
+
+1. Create a project at [Firebase Console](https://console.firebase.google.com/)
+2. Enable **Google Authentication**
+3. Copy config values to `.env`
+
+### 4. Configure Environment
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env`:
+```env
+# Firebase Auth
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+
+# Admin Access (comma-separated emails)
+VITE_ADMIN_EMAILS=admin@gmail.com,another@gmail.com
+
+# Cloudflare Worker API
+VITE_API_URL=https://your-worker.workers.dev
+```
+
+### 5. Run Development Server
 
 ```bash
 npm run dev
@@ -121,109 +151,68 @@ Visit [http://localhost:5173](http://localhost:5173)
 
 | Page | Route | Description |
 |------|-------|-------------|
-| Home | `/` | Hero, featured photos, about preview |
+| Home | `/` | Hero section, featured photos |
 | Gallery | `/gallery` | Masonry grid with search/filter |
 | Album | `/album/:id` | Single album photos |
 | About | `/about` | Photographer bio and info |
-| Contact | `/contact` | Contact form and info |
-| Login | `/login` | Google sign-in |
-| Admin | `/admin` | Photo upload, album management |
+| Contact | `/contact` | Contact information |
+| Admin | `/admin` | Full content management |
 
-## 🔐 Authentication
+## 🗄️ Database Schema (D1)
 
-- Uses Firebase Google Authentication
-- Admin access controlled by `VITE_ADMIN_EMAIL` environment variable
-- Protected routes redirect to login
-
-## 🗄️ Database Schema
-
-### Firestore Collections
+### Tables
 
 **photos**
-```typescript
-{
-  id: string;
-  url: string;
-  thumbnail: string;
-  title: string;
-  description: string;
-  albumId: string;
-  tags: string[];
-  createdAt: Timestamp;
-  order: number;
-}
+```sql
+CREATE TABLE photos (
+    id TEXT PRIMARY KEY,
+    url TEXT NOT NULL,
+    thumbnail TEXT,
+    title TEXT,
+    description TEXT,
+    album_id TEXT,
+    tags TEXT,  -- JSON array
+    order_num INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
 **albums**
-```typescript
-{
-  id: string;
-  name: string;
-  description: string;
-  coverUrl: string;
-  order: number;
-  isPublic: boolean;
-  createdAt: Timestamp;
-}
+```sql
+CREATE TABLE albums (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    cover_url TEXT,
+    order_num INTEGER DEFAULT 0,
+    is_public INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
-### Storage Structure
-
-```
-photos/
-└── {photoId}/
-    ├── original.jpg
-    └── thumbnail.jpg
+**site_content**
+```sql
+CREATE TABLE site_content (
+    id TEXT PRIMARY KEY,
+    content TEXT,  -- JSON object
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
 ## 🚢 Deployment
 
-### Option 1: Firebase Hosting (Recommended)
+### Frontend: Firebase Hosting
 
 ```bash
-# Install Firebase CLI
-npm install -g firebase-tools
-
-# Login to Firebase
-firebase login
-
-# Initialize project (skip if firebase.json exists)
-firebase init
-
-# Build and deploy
 npm run build
-firebase deploy
+npx firebase deploy --only hosting
 ```
 
-### Option 2: Vercel
+### Backend: Cloudflare Workers
 
 ```bash
-# Install Vercel CLI
-npm install -g vercel
-
-# Deploy
-vercel
-```
-
-Or connect your GitHub repository to Vercel dashboard.
-
-### Build Commands
-
-```bash
-# Development
-npm run dev
-
-# Production build
-npm run build
-
-# Preview production build
-npm run preview
-
-# Type checking
-npm run type-check
-
-# Linting
-npm run lint
+cd cloudflare-worker
+wrangler deploy
 ```
 
 ## 🔧 Environment Variables
@@ -236,7 +225,8 @@ npm run lint
 | `VITE_FIREBASE_STORAGE_BUCKET` | Yes | Firebase storage bucket |
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | Yes | Firebase messaging sender ID |
 | `VITE_FIREBASE_APP_ID` | Yes | Firebase app ID |
-| `VITE_ADMIN_EMAIL` | Yes | Admin email for access control |
+| `VITE_ADMIN_EMAILS` | Yes | Comma-separated admin emails |
+| `VITE_API_URL` | Yes | Cloudflare Worker API URL |
 
 ## 📝 License
 
@@ -244,6 +234,6 @@ MIT License - feel free to use this project for your own photography portfolio!
 
 ## 🙏 Acknowledgments
 
-- [Unsplash](https://unsplash.com) for placeholder images
 - [MUI](https://mui.com) for Material Design components
-- [Firebase](https://firebase.google.com) for backend services
+- [Cloudflare](https://cloudflare.com) for D1 database and Workers
+- [Firebase](https://firebase.google.com) for authentication
