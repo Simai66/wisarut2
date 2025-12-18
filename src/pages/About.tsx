@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Box, Container, Typography, Grid, Chip, Paper, CircularProgress } from '@mui/material';
+import { Box, Container, Typography, Grid, Chip, Paper } from '@mui/material';
 import { CameraAlt, Landscape, Portrait, LocationOn } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { getAboutContent } from '@/services/contentService';
 import type { AboutContent } from '@/types';
+import { defaultAboutContent } from '@/types/content';
 
 // Icon mapping
 const iconMap: Record<string, React.ReactNode> = {
@@ -17,30 +18,24 @@ const iconMap: Record<string, React.ReactNode> = {
  * About page component with dynamic content
  */
 export const About = () => {
-    const [content, setContent] = useState<AboutContent | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    // Render instantly with defaults; then hydrate from Firestore in background.
+    const [content, setContent] = useState<AboutContent>(() => ({
+        ...defaultAboutContent,
+        id: 'about',
+        updatedAt: new Date(),
+    }));
 
     useEffect(() => {
         const fetchContent = async () => {
             try {
                 const data = await getAboutContent();
                 setContent(data);
-            } finally {
-                setIsLoading(false);
+            } catch {
+                // keep defaults
             }
         };
         fetchContent();
     }, []);
-
-    if (isLoading) {
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-                <CircularProgress />
-            </Box>
-        );
-    }
-
-    if (!content) return null;
 
     return (
         <Box sx={{ py: 4 }}>

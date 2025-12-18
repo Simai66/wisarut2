@@ -1,12 +1,11 @@
 import { create } from 'zustand';
-import { DocumentSnapshot } from 'firebase/firestore';
 import type { Photo, Album, GalleryFilters } from '@/types';
 import {
     getPhotos,
     getPhotosByAlbum,
     searchPhotos,
 } from '@/services/photoService';
-import { getAlbums, getAllAlbums } from '@/services/albumService';
+import { getAlbums } from '@/services/albumService';
 
 interface GalleryState {
     photos: Photo[];
@@ -16,7 +15,7 @@ interface GalleryState {
     isLoading: boolean;
     error: string | null;
     hasMore: boolean;
-    lastDoc: DocumentSnapshot | null;
+    lastDoc: null;  // No longer using Firestore pagination
 }
 
 interface GalleryActions {
@@ -59,7 +58,7 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
         set({ isLoading: true, error: null });
 
         try {
-            let result: { photos: Photo[]; lastDoc: DocumentSnapshot | null };
+            let result: { photos: Photo[]; lastDoc: null };
 
             // If there's a search query, use search
             if (filters.searchQuery) {
@@ -105,7 +104,7 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
         set({ isLoading: true, error: null });
 
         try {
-            const albums = includePrivate ? await getAllAlbums() : await getAlbums();
+            const albums = await getAlbums(includePrivate);
             set({ albums, isLoading: false });
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to fetch albums';

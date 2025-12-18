@@ -51,10 +51,14 @@ export const AlbumManager = ({
     const [formData, setFormData] = useState<AlbumFormData>(defaultFormData);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [albumToDelete, setAlbumToDelete] = useState<Album | null>(null);
+    const [quickName, setQuickName] = useState('');
+    const [quickCoverUrl, setQuickCoverUrl] = useState('');
 
     const handleOpenCreate = () => {
         setEditingAlbum(null);
-        setFormData(defaultFormData);
+        const nextOrder =
+            albums.length > 0 ? Math.max(...albums.map((a) => a.order ?? 0)) + 1 : 0;
+        setFormData({ ...defaultFormData, order: nextOrder });
         setDialogOpen(true);
     };
 
@@ -80,6 +84,21 @@ export const AlbumManager = ({
         setFormData(defaultFormData);
     };
 
+    const handleQuickCreate = async () => {
+        if (!quickName.trim()) return;
+        const nextOrder =
+            albums.length > 0 ? Math.max(...albums.map((a) => a.order ?? 0)) + 1 : 0;
+        await onCreateAlbum({
+            name: quickName.trim(),
+            description: '',
+            coverUrl: quickCoverUrl.trim(),
+            order: nextOrder,
+            isPublic: true,
+        });
+        setQuickName('');
+        setQuickCoverUrl('');
+    };
+
     const handleDelete = async () => {
         if (albumToDelete) {
             await onDeleteAlbum(albumToDelete.id);
@@ -101,6 +120,31 @@ export const AlbumManager = ({
                     onClick={handleOpenCreate}
                 >
                     New Album
+                </Button>
+            </Box>
+
+            {/* Quick create (minimal) */}
+            <Box sx={{ display: 'flex', gap: 2, mb: 3, flexDirection: { xs: 'column', md: 'row' } }}>
+                <TextField
+                    label="Album name"
+                    value={quickName}
+                    onChange={(e) => setQuickName(e.target.value)}
+                    fullWidth
+                />
+                <TextField
+                    label="Cover URL (optional)"
+                    value={quickCoverUrl}
+                    onChange={(e) => setQuickCoverUrl(e.target.value)}
+                    fullWidth
+                />
+                <Button
+                    variant="contained"
+                    startIcon={<Add />}
+                    onClick={handleQuickCreate}
+                    disabled={!quickName.trim() || isLoading}
+                    sx={{ whiteSpace: 'nowrap' }}
+                >
+                    Quick add
                 </Button>
             </Box>
 

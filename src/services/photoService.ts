@@ -1,85 +1,48 @@
-import {
-    collection,
-    doc,
-    getDocs,
-    getDoc,
-    addDoc,
-    updateDoc,
-    deleteDoc,
-    query,
-    where,
-    orderBy,
-    limit,
-    startAfter,
-    DocumentSnapshot,
-    Timestamp,
-} from 'firebase/firestore';
-import { db } from '@/config/firebase';
+/**
+ * Photo Service - Using Cloudflare D1 API
+ */
 import type { Photo, PhotoFormData } from '@/types';
 
-const COLLECTION_NAME = 'photos';
-const photosCollection = collection(db, COLLECTION_NAME);
+const API_URL = import.meta.env.VITE_API_URL || 'https://photo-api.photo-wisarut.workers.dev';
 
 /**
- * Convert Firestore document to Photo
- */
-const convertDocToPhoto = (doc: DocumentSnapshot): Photo | null => {
-    const data = doc.data();
-    if (!data) return null;
-
-    return {
-        id: doc.id,
-        url: data.url as string,
-        thumbnail: data.thumbnail as string,
-        title: data.title as string,
-        description: data.description as string,
-        albumId: data.albumId as string,
-        tags: data.tags as string[],
-        createdAt: (data.createdAt as Timestamp).toDate(),
-        order: data.order as number,
-        width: data.width as number | undefined,
-        height: data.height as number | undefined,
-    };
-};
-
-/**
- * Get all photos with optional pagination
+ * Get all photos with optional filters
  */
 export const getPhotos = async (
-    pageSize: number = 20,
-    lastDoc?: DocumentSnapshot
-): Promise<{ photos: Photo[]; lastDoc: DocumentSnapshot | null }> => {
-    let q = query(
-        photosCollection,
-        orderBy('order', 'asc'),
-        orderBy('createdAt', 'desc'),
-        limit(pageSize)
-    );
+    pageSize: number = 100,
+    _lastDoc?: unknown
+): Promise<{ photos: Photo[]; lastDoc: null }> => {
+    const response = await fetch(`${API_URL}/photos?limit=${pageSize}`);
 
-    if (lastDoc) {
-        q = query(q, startAfter(lastDoc));
+    if (!response.ok) {
+        throw new Error('Failed to fetch photos');
     }
 
-    const snapshot = await getDocs(q);
-    const photos: Photo[] = [];
+    const data = await response.json();
 
-    snapshot.docs.forEach((doc) => {
-        const photo = convertDocToPhoto(doc);
-        if (photo) photos.push(photo);
-    });
+    const photos: Photo[] = data.photos.map((p: Record<string, unknown>) => ({
+        id: p.id as string,
+        url: p.url as string,
+        thumbnail: p.thumbnail as string,
+        title: p.title as string || '',
+        description: p.description as string || '',
+        albumId: p.albumId as string || p.album_id as string || '',
+        tags: (p.tags as string[]) || [],
+        createdAt: new Date(p.createdAt as string || p.created_at as string || Date.now()),
+        order: p.order as number || 0,
+        width: p.width as number | undefined,
+        height: p.height as number | undefined,
+    }));
 
-    const newLastDoc = snapshot.docs[snapshot.docs.length - 1] ?? null;
-
-    return { photos, lastDoc: newLastDoc };
+    return { photos, lastDoc: null };
 };
 
 /**
  * Get photo by ID
  */
 export const getPhotoById = async (id: string): Promise<Photo | null> => {
-    const docRef = doc(db, COLLECTION_NAME, id);
-    const docSnap = await getDoc(docRef);
-    return convertDocToPhoto(docSnap);
+    const { photos } = await getPhotos(1000);
+    return photos.find(p => p.id === id) || null;
 };
 
 /**
@@ -87,93 +50,94 @@ export const getPhotoById = async (id: string): Promise<Photo | null> => {
  */
 export const getPhotosByAlbum = async (
     albumId: string,
-    pageSize: number = 20,
-    lastDoc?: DocumentSnapshot
-): Promise<{ photos: Photo[]; lastDoc: DocumentSnapshot | null }> => {
-    let q = query(
-        photosCollection,
-        where('albumId', '==', albumId),
-        orderBy('order', 'asc'),
-        limit(pageSize)
-    );
+    pageSize: number = 100,
+    _lastDoc?: unknown
+): Promise<{ photos: Photo[]; lastDoc: null }> => {
+    const response = await fetch(`${API_URL}/photos?albumId=${albumId}&limit=${pageSize}`);
 
-    if (lastDoc) {
-        q = query(q, startAfter(lastDoc));
+    if (!response.ok) {
+        throw new Error('Failed to fetch photos');
     }
 
-    const snapshot = await getDocs(q);
-    const photos: Photo[] = [];
+    const data = await response.json();
 
-    snapshot.docs.forEach((doc) => {
-        const photo = convertDocToPhoto(doc);
-        if (photo) photos.push(photo);
-    });
+    const photos: Photo[] = data.photos.map((p: Record<string, unknown>) => ({
+        id: p.id as string,
+        url: p.url as string,
+        thumbnail: p.thumbnail as string,
+        title: p.title as string || '',
+        description: p.description as string || '',
+        albumId: p.albumId as string || p.album_id as string || '',
+        tags: (p.tags as string[]) || [],
+        createdAt: new Date(p.createdAt as string || p.created_at as string || Date.now()),
+        order: p.order as number || 0,
+    }));
 
-    const newLastDoc = snapshot.docs[snapshot.docs.length - 1] ?? null;
-
-    return { photos, lastDoc: newLastDoc };
+    return { photos, lastDoc: null };
 };
 
 /**
  * Search photos by title or tags
  */
-export const searchPhotos = async (
-    searchQuery: string
-): Promise<Photo[]> => {
-    // Note: Firestore doesn't support full-text search natively
-    // This is a simple implementation that fetches all and filters client-side
-    // For production, consider using Algolia or Elasticsearch
-    const snapshot = await getDocs(
-        query(photosCollection, orderBy('order', 'asc'))
-    );
-
+export const searchPhotos = async (searchQuery: string): Promise<Photo[]> => {
+    const { photos } = await getPhotos(1000);
     const searchLower = searchQuery.toLowerCase();
-    const photos: Photo[] = [];
 
-    snapshot.docs.forEach((doc) => {
-        const photo = convertDocToPhoto(doc);
-        if (photo) {
-            const titleMatch = photo.title.toLowerCase().includes(searchLower);
-            const tagMatch = photo.tags.some((tag) =>
-                tag.toLowerCase().includes(searchLower)
-            );
-            if (titleMatch || tagMatch) {
-                photos.push(photo);
-            }
-        }
+    return photos.filter(photo => {
+        const titleMatch = photo.title.toLowerCase().includes(searchLower);
+        const tagMatch = photo.tags.some(tag => tag.toLowerCase().includes(searchLower));
+        return titleMatch || tagMatch;
     });
-
-    return photos;
 };
 
 /**
- * Create a new photo (Admin only)
+ * Create a new photo
  */
 export const createPhoto = async (
     photoData: PhotoFormData & { url: string; thumbnail: string }
 ): Promise<string> => {
-    const docRef = await addDoc(photosCollection, {
-        ...photoData,
-        createdAt: Timestamp.now(),
+    const response = await fetch(`${API_URL}/photos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(photoData),
     });
-    return docRef.id;
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to create photo');
+    }
+
+    const data = await response.json();
+    return data.id;
 };
 
 /**
- * Update a photo (Admin only)
+ * Update a photo
  */
 export const updatePhoto = async (
     id: string,
     photoData: Partial<PhotoFormData>
 ): Promise<void> => {
-    const docRef = doc(db, COLLECTION_NAME, id);
-    await updateDoc(docRef, photoData);
+    const response = await fetch(`${API_URL}/photos/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(photoData),
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to update photo');
+    }
 };
 
 /**
- * Delete a photo (Admin only)
+ * Delete a photo
  */
 export const deletePhoto = async (id: string): Promise<void> => {
-    const docRef = doc(db, COLLECTION_NAME, id);
-    await deleteDoc(docRef);
+    const response = await fetch(`${API_URL}/photos/${id}`, {
+        method: 'DELETE',
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to delete photo');
+    }
 };

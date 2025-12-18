@@ -1,7 +1,22 @@
 import { v4 as uuidv4 } from 'uuid';
 
 const IMGBB_API_KEY = import.meta.env.VITE_IMGBB_API_KEY || '';
-const IMGBB_PROXY_URL = 'https://imgbb-proxy.photo-wisarut.workers.dev';
+const IMGBB_PROXY_URL = import.meta.env.VITE_IMGBB_PROXY_URL || 'https://imgbb-proxy.photo-wisarut.workers.dev';
+
+const uploadWithTimeout = async (url: string, body: BodyInit, timeoutMs = 60_000) => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        return await fetch(url, {
+            method: 'POST',
+            body,
+            signal: controller.signal,
+        });
+    } finally {
+        window.clearTimeout(timeoutId);
+    }
+};
 
 /**
  * Generate unique photo ID
@@ -115,13 +130,13 @@ export const uploadImage = async (
     formData.append('key', IMGBB_API_KEY);
 
     // Use Cloudflare Worker as proxy (your own server, no CORS issues)
-    const response = await fetch(IMGBB_PROXY_URL, {
-        method: 'POST',
-        body: formData,
-    });
+    const response = await uploadWithTimeout(IMGBB_PROXY_URL, formData);
 
     if (!response.ok) {
-        throw new Error('Failed to upload image to ImgBB');
+        const detail = await response.text().catch(() => '');
+        throw new Error(
+            `Failed to upload image (HTTP ${response.status})${detail ? `: ${detail}` : ''}`
+        );
     }
 
     const data = await response.json();
@@ -161,13 +176,13 @@ export const uploadImageWithThumbnail = async (
     formData.append('key', IMGBB_API_KEY);
 
     // Use Cloudflare Worker as proxy (your own server, no CORS issues)
-    const response = await fetch(IMGBB_PROXY_URL, {
-        method: 'POST',
-        body: formData,
-    });
+    const response = await uploadWithTimeout(IMGBB_PROXY_URL, formData);
 
     if (!response.ok) {
-        throw new Error('Failed to upload image to ImgBB');
+        const detail = await response.text().catch(() => '');
+        throw new Error(
+            `Failed to upload image (HTTP ${response.status})${detail ? `: ${detail}` : ''}`
+        );
     }
 
     const data = await response.json();

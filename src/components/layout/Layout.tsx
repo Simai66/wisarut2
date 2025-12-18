@@ -44,15 +44,16 @@ export const Layout = ({ children, hideFooter = false }: LayoutProps) => {
             {/* Global Snackbar */}
             <Snackbar
                 open={snackbar.open}
-                autoHideDuration={5000}
+                autoHideDuration={6000}
                 onClose={hideSnackbar}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                sx={{ top: { xs: 80, sm: 90 } }} // Avoid overlap with Navbar
             >
                 <Alert
                     onClose={hideSnackbar}
                     severity={snackbar.severity}
                     variant="filled"
-                    sx={{ width: '100%' }}
+                    sx={{ width: '100%', boxShadow: 3 }}
                 >
                     {snackbar.message}
                 </Alert>

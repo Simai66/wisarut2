@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
     Box,
@@ -15,17 +15,35 @@ import { Lightbox } from '@/components/gallery/Lightbox';
 import { useLightbox } from '@/hooks/useLightbox';
 import { LoadingSkeleton } from '@/components/common/LoadingSkeleton';
 import { ROUTES } from '@/config/routes';
+import { getHomeContent, defaultHomeContent, type HomeContent } from '@/services/contentService';
 
 /**
  * Home page component
  */
 export const Home = () => {
-    const { featuredPhotos, isLoading, fetchFeaturedPhotos } = usePhotos();
+    const { featuredPhotos, isLoading: photosLoading, fetchFeaturedPhotos } = usePhotos();
     const lightbox = useLightbox();
+    const [homeContent, setHomeContent] = useState<Omit<HomeContent, 'id' | 'updatedAt'>>(defaultHomeContent);
+    const [isContentLoading, setIsContentLoading] = useState(true);
 
     useEffect(() => {
         fetchFeaturedPhotos();
+
+        // Fetch home page content
+        const loadContent = async () => {
+            try {
+                const content = await getHomeContent();
+                setHomeContent(content);
+            } catch (error) {
+                console.error('Error loading home content:', error);
+            } finally {
+                setIsContentLoading(false);
+            }
+        };
+        loadContent();
     }, [fetchFeaturedPhotos]);
+
+    const isLoading = photosLoading || isContentLoading;
 
     return (
         <Box>
@@ -53,7 +71,7 @@ export const Home = () => {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        backgroundImage: 'url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920)',
+                        backgroundImage: `url(${homeContent.heroBackgroundUrl})`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         filter: 'brightness(0.4)',
@@ -77,7 +95,7 @@ export const Home = () => {
                                 mb: 2,
                             }}
                         >
-                            Capturing Moments
+                            {homeContent.heroTitle}
                         </Typography>
                         <Typography
                             variant="h5"
@@ -89,7 +107,7 @@ export const Home = () => {
                                 mx: 'auto',
                             }}
                         >
-                            A visual journey through light, shadow, and emotion. Explore the world through my lens.
+                            {homeContent.heroSubtitle}
                         </Typography>
                         <Button
                             component={RouterLink}
@@ -104,7 +122,7 @@ export const Home = () => {
                                 borderRadius: '50px',
                             }}
                         >
-                            View Gallery
+                            {homeContent.heroButtonText}
                         </Button>
                     </motion.div>
                 </Container>
@@ -159,10 +177,10 @@ export const Home = () => {
                         sx={{ textAlign: 'center', mb: 6 }}
                     >
                         <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.2em' }}>
-                            Featured Work
+                            {homeContent.featuredSectionSubtitle}
                         </Typography>
                         <Typography variant="h2" sx={{ mt: 1, fontWeight: 600 }}>
-                            Recent Captures
+                            {homeContent.featuredSectionTitle}
                         </Typography>
                     </Box>
 

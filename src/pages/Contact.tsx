@@ -14,13 +14,18 @@ import { Email, Phone, LocationOn, Send } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { getContactContent } from '@/services/contentService';
 import type { ContactFormData, ContactContent } from '@/types';
+import { defaultContactContent } from '@/types/content';
 
 /**
  * Contact page component with dynamic content
  */
 export const Contact = () => {
-    const [content, setContent] = useState<ContactContent | null>(null);
-    const [isLoadingContent, setIsLoadingContent] = useState(true);
+    // Render instantly with defaults; then hydrate from Firestore in background.
+    const [content, setContent] = useState<ContactContent>(() => ({
+        ...defaultContactContent,
+        id: 'contact',
+        updatedAt: new Date(),
+    }));
     const [formData, setFormData] = useState<ContactFormData>({
         name: '',
         email: '',
@@ -35,8 +40,8 @@ export const Contact = () => {
             try {
                 const data = await getContactContent();
                 setContent(data);
-            } finally {
-                setIsLoadingContent(false);
+            } catch {
+                // keep defaults
             }
         };
         fetchContent();
@@ -68,16 +73,6 @@ export const Contact = () => {
             setIsSubmitting(false);
         }
     };
-
-    if (isLoadingContent) {
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-                <CircularProgress />
-            </Box>
-        );
-    }
-
-    if (!content) return null;
 
     const contactInfo = [
         {

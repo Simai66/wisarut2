@@ -1,8 +1,8 @@
-name = "imgbb-proxy"
-main = "imgbb-proxy.js"
+name = "photo-api"
+main = "api.js"
 compatibility_date = "2024-01-01"
 
-# Optional: Add custom domain
-# routes = [
-#   { pattern = "imgbb-proxy.yourdomain.com/*", zone_name = "yourdomain.com" }
-# ]
+[[d1_databases]]
+binding = "DB"
+database_name = "photo-gallery"
+database_id = "7d6f21a5-3518-4e42-879d-13e6d3753945"

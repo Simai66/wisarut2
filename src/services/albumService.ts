@@ -1,75 +1,36 @@
-import {
-    collection,
-    doc,
-    getDocs,
-    getDoc,
-    addDoc,
-    updateDoc,
-    deleteDoc,
-    query,
-    where,
-    orderBy,
-    DocumentSnapshot,
-    Timestamp,
-} from 'firebase/firestore';
-import { db } from '@/config/firebase';
+/**
+ * Album Service - Using Cloudflare D1 API
+ */
 import type { Album, AlbumFormData } from '@/types';
 
-const COLLECTION_NAME = 'albums';
-const albumsCollection = collection(db, COLLECTION_NAME);
+const API_URL = import.meta.env.VITE_API_URL || 'https://photo-api.photo-wisarut.workers.dev';
 
 /**
- * Convert Firestore document to Album
+ * Get all albums
  */
-const convertDocToAlbum = (doc: DocumentSnapshot): Album | null => {
-    const data = doc.data();
-    if (!data) return null;
+export const getAlbums = async (includePrivate = false): Promise<Album[]> => {
+    const response = await fetch(`${API_URL}/albums`);
 
-    return {
-        id: doc.id,
-        name: data.name as string,
-        description: data.description as string,
-        coverUrl: data.coverUrl as string,
-        order: data.order as number,
-        isPublic: data.isPublic as boolean,
-        createdAt: (data.createdAt as Timestamp).toDate(),
-        photoCount: data.photoCount as number | undefined,
-    };
-};
+    if (!response.ok) {
+        throw new Error('Failed to fetch albums');
+    }
 
-/**
- * Get all public albums
- */
-export const getAlbums = async (): Promise<Album[]> => {
-    const q = query(
-        albumsCollection,
-        where('isPublic', '==', true),
-        orderBy('order', 'asc')
-    );
+    const data = await response.json();
 
-    const snapshot = await getDocs(q);
-    const albums: Album[] = [];
+    let albums: Album[] = data.albums.map((a: Record<string, unknown>) => ({
+        id: a.id as string,
+        name: a.name as string,
+        description: a.description as string || '',
+        coverUrl: a.coverUrl as string || a.cover_url as string || '',
+        order: a.order as number || 0,
+        isPublic: Boolean(a.isPublic ?? a.is_public ?? true),
+        createdAt: new Date(a.createdAt as string || a.created_at as string || Date.now()),
+    }));
 
-    snapshot.docs.forEach((doc) => {
-        const album = convertDocToAlbum(doc);
-        if (album) albums.push(album);
-    });
-
-    return albums;
-};
-
-/**
- * Get all albums (including private, for admin)
- */
-export const getAllAlbums = async (): Promise<Album[]> => {
-    const q = query(albumsCollection, orderBy('order', 'asc'));
-    const snapshot = await getDocs(q);
-    const albums: Album[] = [];
-
-    snapshot.docs.forEach((doc) => {
-        const album = convertDocToAlbum(doc);
-        if (album) albums.push(album);
-    });
+    // Filter private albums unless requested
+    if (!includePrivate) {
+        albums = albums.filter(a => a.isPublic);
+    }
 
     return albums;
 };
@@ -78,38 +39,56 @@ export const getAllAlbums = async (): Promise<Album[]> => {
  * Get album by ID
  */
 export const getAlbumById = async (id: string): Promise<Album | null> => {
-    const docRef = doc(db, COLLECTION_NAME, id);
-    const docSnap = await getDoc(docRef);
-    return convertDocToAlbum(docSnap);
+    const albums = await getAlbums(true);
+    return albums.find(a => a.id === id) || null;
 };
 
 /**
- * Create a new album (Admin only)
+ * Create a new album
  */
 export const createAlbum = async (albumData: AlbumFormData): Promise<string> => {
-    const docRef = await addDoc(albumsCollection, {
-        ...albumData,
-        createdAt: Timestamp.now(),
-        photoCount: 0,
+    const response = await fetch(`${API_URL}/albums`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(albumData),
     });
-    return docRef.id;
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to create album');
+    }
+
+    const data = await response.json();
+    return data.id;
 };
 
 /**
- * Update an album (Admin only)
+ * Update an album
  */
 export const updateAlbum = async (
     id: string,
     albumData: Partial<AlbumFormData>
 ): Promise<void> => {
-    const docRef = doc(db, COLLECTION_NAME, id);
-    await updateDoc(docRef, albumData);
+    const response = await fetch(`${API_URL}/albums/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(albumData),
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to update album');
+    }
 };
 
 /**
- * Delete an album (Admin only)
+ * Delete an album
  */
 export const deleteAlbum = async (id: string): Promise<void> => {
-    const docRef = doc(db, COLLECTION_NAME, id);
-    await deleteDoc(docRef);
+    const response = await fetch(`${API_URL}/albums/${id}`, {
+        method: 'DELETE',
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to delete album');
+    }
 };

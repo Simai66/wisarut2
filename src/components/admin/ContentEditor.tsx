@@ -11,14 +11,18 @@ import {
     Grid,
     CircularProgress,
     Alert,
+    Collapse,
 } from '@mui/material';
-import { ExpandMore, Add, Delete, Save } from '@mui/icons-material';
+import { ExpandMore, Add, Delete, Save, Close } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import {
     getAboutContent,
     updateAboutContent,
     getContactContent,
     updateContactContent,
+    getHomeContent,
+    updateHomeContent,
+    type HomeContent,
 } from '@/services/contentService';
 import type { AboutContent, ContactContent } from '@/types';
 import { useUIStore } from '@/stores/uiStore';
@@ -27,25 +31,42 @@ import { useUIStore } from '@/stores/uiStore';
  * Admin content editor for About and Contact pages
  */
 export const ContentEditor = () => {
+    const [homeContent, setHomeContent] = useState<HomeContent | null>(null);
     const [aboutContent, setAboutContent] = useState<AboutContent | null>(null);
     const [contactContent, setContactContent] = useState<ContactContent | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [actionStatus, setActionStatus] = useState<{
+        open: boolean;
+        message: string;
+        severity: 'success' | 'error' | 'warning' | 'info';
+    }>({ open: false, message: '', severity: 'info' });
+
     const { showSnackbar } = useUIStore();
+
+    const setFeedback = (message: string, severity: 'success' | 'error' | 'warning' | 'info') => {
+        setActionStatus({ open: true, message, severity });
+        showSnackbar(message, severity);
+    };
+
+    const firebaseProjectId = import.meta.env.VITE_FIREBASE_PROJECT_ID as string | undefined;
 
     // Fetch content on mount
     useEffect(() => {
         const fetchContent = async () => {
             try {
-                const [about, contact] = await Promise.all([
+                const [home, about, contact] = await Promise.all([
+                    getHomeContent(),
                     getAboutContent(),
                     getContactContent(),
                 ]);
+                setHomeContent(home);
                 setAboutContent(about);
                 setContactContent(contact);
             } catch (err) {
-                setError('Failed to load content');
+                const message = err instanceof Error ? err.message : 'Failed to load content';
+                setError(message);
             } finally {
                 setIsLoading(false);
             }
@@ -53,14 +74,31 @@ export const ContentEditor = () => {
         fetchContent();
     }, []);
 
+    const handleSaveHome = async () => {
+        if (!homeContent) return;
+        setIsSaving(true);
+        setActionStatus(prev => ({ ...prev, open: false }));
+        try {
+            await updateHomeContent(homeContent);
+            setFeedback('Home page updated successfully', 'success');
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to save home content';
+            setFeedback(message, 'error');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const handleSaveAbout = async () => {
         if (!aboutContent) return;
         setIsSaving(true);
+        setActionStatus(prev => ({ ...prev, open: false }));
         try {
             await updateAboutContent(aboutContent);
-            showSnackbar('About page updated successfully', 'success');
-        } catch {
-            showSnackbar('Failed to save about content', 'error');
+            setFeedback('About page updated successfully', 'success');
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to save about content';
+            setFeedback(message, 'error');
         } finally {
             setIsSaving(false);
         }
@@ -69,11 +107,13 @@ export const ContentEditor = () => {
     const handleSaveContact = async () => {
         if (!contactContent) return;
         setIsSaving(true);
+        setActionStatus(prev => ({ ...prev, open: false }));
         try {
             await updateContactContent(contactContent);
-            showSnackbar('Contact page updated successfully', 'success');
-        } catch {
-            showSnackbar('Failed to save contact content', 'error');
+            setFeedback('Contact page updated successfully', 'success');
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to save contact content';
+            setFeedback(message, 'error');
         } finally {
             setIsSaving(false);
         }
@@ -96,6 +136,104 @@ export const ContentEditor = () => {
             <Typography variant="h5" fontWeight={600} sx={{ mb: 3 }}>
                 Edit Page Content
             </Typography>
+
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                Content source: Cloudflare D1 API{firebaseProjectId ? ` • Firebase Auth Project: ${firebaseProjectId}` : ''}
+            </Typography>
+
+            {/* Persistent Feedback Alert */}
+            <Box sx={{ mb: 3 }}>
+                <Collapse in={actionStatus.open}>
+                    <Alert
+                        severity={actionStatus.severity}
+                        action={
+                            <IconButton
+                                aria-label="close"
+                                color="inherit"
+                                size="small"
+                                onClick={() => {
+                                    setActionStatus(prev => ({ ...prev, open: false }));
+                                }}
+                            >
+                                <Close fontSize="inherit" />
+                            </IconButton>
+                        }
+                        sx={{ mb: 2, boxShadow: 1 }}
+                    >
+                        {actionStatus.message}
+                    </Alert>
+                </Collapse>
+            </Box>
+
+            {/* Home Page Editor */}
+            <Accordion
+                component={motion.div}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                sx={{ mb: 2 }}
+            >
+                <AccordionSummary expandIcon={<ExpandMore />}>
+                    <Typography variant="h6">Home Page</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                    {homeContent && (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <TextField
+                                label="Hero Title"
+                                fullWidth
+                                value={homeContent.heroTitle}
+                                onChange={(e) => setHomeContent({ ...homeContent, heroTitle: e.target.value })}
+                                helperText="Main headline on the home page"
+                            />
+                            <TextField
+                                label="Hero Subtitle"
+                                fullWidth
+                                multiline
+                                rows={2}
+                                value={homeContent.heroSubtitle}
+                                onChange={(e) => setHomeContent({ ...homeContent, heroSubtitle: e.target.value })}
+                                helperText="Description text below the title"
+                            />
+                            <TextField
+                                label="Hero Background Image URL"
+                                fullWidth
+                                value={homeContent.heroBackgroundUrl}
+                                onChange={(e) => setHomeContent({ ...homeContent, heroBackgroundUrl: e.target.value })}
+                                helperText="URL of the background image (e.g., ImgBB or Unsplash link)"
+                            />
+                            <TextField
+                                label="Hero Button Text"
+                                fullWidth
+                                value={homeContent.heroButtonText}
+                                onChange={(e) => setHomeContent({ ...homeContent, heroButtonText: e.target.value })}
+                                helperText="Text for the main call-to-action button"
+                            />
+                            <TextField
+                                label="Featured Section Title"
+                                fullWidth
+                                value={homeContent.featuredSectionTitle}
+                                onChange={(e) => setHomeContent({ ...homeContent, featuredSectionTitle: e.target.value })}
+                            />
+                            <TextField
+                                label="Featured Section Subtitle"
+                                fullWidth
+                                value={homeContent.featuredSectionSubtitle}
+                                onChange={(e) => setHomeContent({ ...homeContent, featuredSectionSubtitle: e.target.value })}
+                            />
+                            <Button
+                                variant="contained"
+                                startIcon={<Save />}
+                                onClick={handleSaveHome}
+                                disabled={isSaving}
+                                sx={{ alignSelf: 'flex-start' }}
+                            >
+                                {isSaving ? 'Saving...' : 'Save Home Page'}
+                            </Button>
+                        </Box>
+                    )}
+                </AccordionDetails>
+            </Accordion>
 
             {/* About Page Editor */}
             <Accordion

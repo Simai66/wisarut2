@@ -1,10 +1,9 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-// Note: Firebase Storage removed - using ImgBB for image storage
 
 /**
  * Firebase configuration from environment variables
+ * Note: Firestore has been replaced with Cloudflare D1 for better reliability
  */
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -18,10 +17,8 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize services
+// Initialize services (Auth only - database is now Cloudflare D1)
 export const auth = getAuth(app);
-export const db = getFirestore(app);
-// Note: storage export removed - using ImgBB via storageService.ts
 
 // Google Auth Provider
 export const googleProvider = new GoogleAuthProvider();

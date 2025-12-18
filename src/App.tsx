@@ -8,6 +8,7 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { ProtectedRoute } from '@/components/admin/ProtectedRoute';
 import { useUIStore } from '@/stores/uiStore';
 import { useAuthStore } from '@/stores/authStore';
+import { initializeDefaultContent } from '@/services/contentService';
 
 // Pages
 import { Home, Gallery, AlbumDetail, About, Contact, Login, Admin } from '@/pages';
@@ -30,6 +31,17 @@ function App() {
     const unsubscribe = initializeAuth();
     return () => unsubscribe();
   }, [initializeAuth]);
+
+  // Best-effort: seed About/Contact docs in Firestore if missing.
+  // If Firestore is unreachable, this will fail silently and the UI will fall back.
+  useEffect(() => {
+    const contentSource = (import.meta.env.VITE_CONTENT_SOURCE as string | undefined)?.toLowerCase() || 'firestore';
+    if (contentSource !== 'firestore') return;
+
+    initializeDefaultContent().catch(() => {
+      // ignore
+    });
+  }, []);
 
   return (
     <ThemeProvider theme={theme}>
