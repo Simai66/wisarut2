@@ -25,12 +25,11 @@ export const AlbumFilter = ({
             <InputLabel id="album-filter-label">Album</InputLabel>
             <Select
                 labelId="album-filter-label"
-                value={selectedAlbumId ?? 'all'}
+                value={selectedAlbumId ?? (albums.length > 0 ? albums[0].id : '')}
                 onChange={handleChange}
                 label="Album"
                 sx={{ backgroundColor: 'background.paper' }}
             >
-                <MenuItem value="all">All Photos</MenuItem>
                 {albums.map((album) => (
                     <MenuItem key={album.id} value={album.id}>
                         {album.name}

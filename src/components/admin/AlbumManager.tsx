@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
     Box,
     TextField,
@@ -15,9 +15,28 @@ import {
     CardContent,
     CardActions,
     Typography,
+    Alert,
 } from '@mui/material';
-import { Add, Edit, Delete } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Add, Edit, Delete, DragIndicator } from '@mui/icons-material';
+import { AnimatePresence } from 'framer-motion';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    TouchSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { Album, AlbumFormData } from '@/types';
 
 interface AlbumManagerProps {
@@ -26,6 +45,12 @@ interface AlbumManagerProps {
     onUpdateAlbum: (id: string, data: Partial<AlbumFormData>) => Promise<void>;
     onDeleteAlbum: (id: string) => Promise<void>;
     isLoading?: boolean;
+}
+
+interface SortableAlbumCardProps {
+    album: Album;
+    onEdit: (album: Album) => void;
+    onDelete: (album: Album) => void;
 }
 
 const defaultFormData: AlbumFormData = {
@@ -37,15 +62,99 @@ const defaultFormData: AlbumFormData = {
 };
 
 /**
- * Album management component (CRUD)
+ * Sortable album card component
+ */
+const SortableAlbumCard = ({ album, onEdit, onDelete }: SortableAlbumCardProps) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: album.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 1000 : 'auto',
+    };
+
+    return (
+        <Grid item xs={12} sm={6} md={4} ref={setNodeRef} style={style}>
+            <Card sx={{ height: '100%', cursor: isDragging ? 'grabbing' : 'default' }}>
+                {/* Drag Handle */}
+                <Box
+                    {...attributes}
+                    {...listeners}
+                    sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        py: 0.5,
+                        cursor: 'grab',
+                        backgroundColor: 'action.hover',
+                        '&:hover': { backgroundColor: 'action.selected' },
+                    }}
+                >
+                    <DragIndicator fontSize="small" color="action" />
+                </Box>
+                {album.coverUrl && (
+                    <Box
+                        sx={{
+                            height: 140,
+                            backgroundImage: `url(${album.coverUrl})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                        }}
+                    />
+                )}
+                <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                        {album.name}
+                    </Typography>
+                    <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                        }}
+                    >
+                        {album.description || 'No description'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                        {album.isPublic ? 'Public' : 'Private'}
+                    </Typography>
+                </CardContent>
+                <CardActions>
+                    <IconButton size="small" onClick={() => onEdit(album)}>
+                        <Edit />
+                    </IconButton>
+                    <IconButton size="small" color="error" onClick={() => onDelete(album)}>
+                        <Delete />
+                    </IconButton>
+                </CardActions>
+            </Card>
+        </Grid>
+    );
+};
+
+/**
+ * Album management component with drag-drop reordering
  */
 export const AlbumManager = ({
-    albums,
+    albums: initialAlbums,
     onCreateAlbum,
     onUpdateAlbum,
     onDeleteAlbum,
     isLoading,
 }: AlbumManagerProps) => {
+    const [albums, setAlbums] = useState<Album[]>(initialAlbums);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
     const [formData, setFormData] = useState<AlbumFormData>(defaultFormData);
@@ -53,11 +162,62 @@ export const AlbumManager = ({
     const [albumToDelete, setAlbumToDelete] = useState<Album | null>(null);
     const [quickName, setQuickName] = useState('');
     const [quickCoverUrl, setQuickCoverUrl] = useState('');
+    const [hasReordered, setHasReordered] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Sync with parent albums
+    useState(() => {
+        setAlbums(initialAlbums);
+    });
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 200,
+                tolerance: 5,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (over && active.id !== over.id) {
+            setAlbums((items) => {
+                const oldIndex = items.findIndex((item) => item.id === active.id);
+                const newIndex = items.findIndex((item) => item.id === over.id);
+                return arrayMove(items, oldIndex, newIndex);
+            });
+            setHasReordered(true);
+        }
+    };
+
+    const handleSaveOrder = async () => {
+        setIsSaving(true);
+        try {
+            const updates = albums.map((album, index) =>
+                onUpdateAlbum(album.id, { order: index })
+            );
+            await Promise.all(updates);
+            setHasReordered(false);
+        } catch (error) {
+            console.error('Failed to save album order:', error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const handleOpenCreate = () => {
         setEditingAlbum(null);
-        const nextOrder =
-            albums.length > 0 ? Math.max(...albums.map((a) => a.order ?? 0)) + 1 : 0;
+        const nextOrder = albums.length > 0 ? Math.max(...albums.map((a) => a.order ?? 0)) + 1 : 0;
         setFormData({ ...defaultFormData, order: nextOrder });
         setDialogOpen(true);
     };
@@ -86,8 +246,7 @@ export const AlbumManager = ({
 
     const handleQuickCreate = async () => {
         if (!quickName.trim()) return;
-        const nextOrder =
-            albums.length > 0 ? Math.max(...albums.map((a) => a.order ?? 0)) + 1 : 0;
+        const nextOrder = albums.length > 0 ? Math.max(...albums.map((a) => a.order ?? 0)) + 1 : 0;
         await onCreateAlbum({
             name: quickName.trim(),
             description: '',
@@ -107,23 +266,44 @@ export const AlbumManager = ({
         }
     };
 
+    const handleOpenDelete = useCallback((album: Album) => {
+        setAlbumToDelete(album);
+        setDeleteDialogOpen(true);
+    }, []);
+
+    // Use initialAlbums if no reorder happened
+    const displayAlbums = hasReordered ? albums : initialAlbums;
+
     return (
         <Box>
             {/* Header */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h5" fontWeight={600}>
-                    Albums
+                    Albums ({displayAlbums.length})
                 </Typography>
-                <Button
-                    variant="contained"
-                    startIcon={<Add />}
-                    onClick={handleOpenCreate}
-                >
-                    New Album
-                </Button>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                    {hasReordered && (
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={handleSaveOrder}
+                            disabled={isSaving}
+                        >
+                            {isSaving ? 'Saving...' : 'Save Order'}
+                        </Button>
+                    )}
+                    <Button variant="contained" startIcon={<Add />} onClick={handleOpenCreate}>
+                        New Album
+                    </Button>
+                </Box>
             </Box>
 
-            {/* Quick create (minimal) */}
+            {/* Reorder hint */}
+            <Alert severity="info" sx={{ mb: 2 }}>
+                🔄 Drag the ⋮⋮ handle on each album to reorder. Click "Save Order" when done. <strong>(PC only)</strong>
+            </Alert>
+
+            {/* Quick create */}
             <Box sx={{ display: 'flex', gap: 2, mb: 3, flexDirection: { xs: 'column', md: 'row' } }}>
                 <TextField
                     label="Album name"
@@ -148,69 +328,27 @@ export const AlbumManager = ({
                 </Button>
             </Box>
 
-            {/* Albums Grid */}
-            <Grid container spacing={2}>
-                <AnimatePresence>
-                    {albums.map((album) => (
-                        <Grid item key={album.id} xs={12} sm={6} md={4}>
-                            <Card
-                                component={motion.div}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                sx={{ height: '100%' }}
-                            >
-                                {album.coverUrl && (
-                                    <Box
-                                        sx={{
-                                            height: 140,
-                                            backgroundImage: `url(${album.coverUrl})`,
-                                            backgroundSize: 'cover',
-                                            backgroundPosition: 'center',
-                                        }}
-                                    />
-                                )}
-                                <CardContent>
-                                    <Typography variant="h6" gutterBottom>
-                                        {album.name}
-                                    </Typography>
-                                    <Typography
-                                        variant="body2"
-                                        color="text.secondary"
-                                        sx={{
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            display: '-webkit-box',
-                                            WebkitLineClamp: 2,
-                                            WebkitBoxOrient: 'vertical',
-                                        }}
-                                    >
-                                        {album.description || 'No description'}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                                        {album.isPublic ? 'Public' : 'Private'} • Order: {album.order}
-                                    </Typography>
-                                </CardContent>
-                                <CardActions>
-                                    <IconButton size="small" onClick={() => handleOpenEdit(album)}>
-                                        <Edit />
-                                    </IconButton>
-                                    <IconButton
-                                        size="small"
-                                        color="error"
-                                        onClick={() => {
-                                            setAlbumToDelete(album);
-                                            setDeleteDialogOpen(true);
-                                        }}
-                                    >
-                                        <Delete />
-                                    </IconButton>
-                                </CardActions>
-                            </Card>
-                        </Grid>
-                    ))}
-                </AnimatePresence>
-            </Grid>
+            {/* Albums Grid with DnD */}
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+            >
+                <SortableContext items={displayAlbums.map(a => a.id)} strategy={rectSortingStrategy}>
+                    <Grid container spacing={2}>
+                        <AnimatePresence>
+                            {displayAlbums.map((album) => (
+                                <SortableAlbumCard
+                                    key={album.id}
+                                    album={album}
+                                    onEdit={handleOpenEdit}
+                                    onDelete={handleOpenDelete}
+                                />
+                            ))}
+                        </AnimatePresence>
+                    </Grid>
+                </SortableContext>
+            </DndContext>
 
             {/* Create/Edit Dialog */}
             <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
@@ -238,13 +376,6 @@ export const AlbumManager = ({
                             fullWidth
                             value={formData.coverUrl}
                             onChange={(e) => setFormData({ ...formData, coverUrl: e.target.value })}
-                        />
-                        <TextField
-                            label="Order"
-                            type="number"
-                            fullWidth
-                            value={formData.order}
-                            onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
                         />
                         <FormControlLabel
                             control={
