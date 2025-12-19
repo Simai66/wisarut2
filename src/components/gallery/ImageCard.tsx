@@ -51,7 +51,7 @@ export const ImageCard = ({ photo, index, onClick }: ImageCardProps) => {
             {/* Image */}
             <Box
                 component="img"
-                src={photo.thumbnail || photo.url}
+                src={photo.url}
                 alt={photo.title}
                 loading="lazy"
                 onLoad={() => setIsLoaded(true)}
