@@ -175,6 +175,7 @@ export const PhotoManager = ({ albums, onRefetch, showSnackbar }: PhotoManagerPr
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
     const [hasReordered, setHasReordered] = useState(false);
+    const [selectedAlbumId, setSelectedAlbumId] = useState<string>('');
     const [editForm, setEditForm] = useState<EditFormData>({
         title: '',
         description: '',
@@ -321,12 +322,35 @@ export const PhotoManager = ({ albums, onRefetch, showSnackbar }: PhotoManagerPr
         );
     }
 
+    const filteredPhotos = selectedAlbumId
+        ? photos.filter(p => p.albumId === selectedAlbumId)
+        : photos;
+
     return (
         <Box>
+            {/* Album Selector */}
+            <FormControl fullWidth size="small" sx={{ mb: 3 }}>
+                <InputLabel>Select Album</InputLabel>
+                <Select
+                    value={selectedAlbumId}
+                    label="Select Album"
+                    onChange={(e) => setSelectedAlbumId(e.target.value)}
+                >
+                    <MenuItem value="">All Albums</MenuItem>
+                    {albums.map((album) => (
+                        <MenuItem key={album.id} value={album.id}>
+                            {album.name}
+                        </MenuItem>
+                    ))}
+                </Select>
+            </FormControl>
+
             {/* Header */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h5" fontWeight={600}>
-                    Manage Photos ({photos.length})
+                    {selectedAlbumId
+                        ? `${albums.find(a => a.id === selectedAlbumId)?.name || 'Album'} (${filteredPhotos.length})`
+                        : `All Photos (${photos.length})`}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 2 }}>
                     {hasReordered && (
@@ -350,18 +374,22 @@ export const PhotoManager = ({ albums, onRefetch, showSnackbar }: PhotoManagerPr
                 🔄 Drag the ⋮⋮ handle on each photo to reorder. Click "Save Order" when done. <strong>(PC only)</strong>
             </Alert>
 
-            {photos.length === 0 ? (
-                <Typography color="text.secondary">No photos yet. Add some from the "Add Photo Links" tab.</Typography>
+            {filteredPhotos.length === 0 ? (
+                <Typography color="text.secondary">
+                    {selectedAlbumId
+                        ? 'No photos in this album yet. Add some from the "Add Photo Links" tab.'
+                        : 'No photos yet. Add some from the "Add Photo Links" tab.'}
+                </Typography>
             ) : (
                 <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
                     onDragEnd={handleDragEnd}
                 >
-                    <SortableContext items={photos.map(p => p.id)} strategy={rectSortingStrategy}>
+                    <SortableContext items={filteredPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
                         <Grid container spacing={2}>
                             <AnimatePresence>
-                                {photos.map((photo) => (
+                                {filteredPhotos.map((photo) => (
                                     <SortablePhotoCard
                                         key={photo.id}
                                         photo={photo}

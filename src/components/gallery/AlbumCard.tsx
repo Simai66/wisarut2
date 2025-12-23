@@ -86,36 +86,10 @@ export const AlbumCard = ({ album, index, onClick }: AlbumCardProps) => {
                     sx={{
                         color: 'white',
                         fontWeight: 600,
-                        mb: 0.5,
                     }}
                 >
                     {album.name}
                 </Typography>
-                {album.description && (
-                    <Typography
-                        variant="body2"
-                        sx={{
-                            color: 'rgba(255,255,255,0.7)',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                        }}
-                    >
-                        {album.description}
-                    </Typography>
-                )}
-                {album.photoCount !== undefined && album.photoCount > 0 && (
-                    <Typography
-                        variant="caption"
-                        sx={{
-                            color: 'rgba(255,255,255,0.5)',
-                            mt: 1,
-                            display: 'block',
-                        }}
-                    >
-                        {album.photoCount} {album.photoCount === 1 ? 'item' : 'items'}
-                    </Typography>
-                )}
             </Box>
         </Paper>
     );

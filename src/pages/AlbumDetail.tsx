@@ -161,20 +161,78 @@ export const AlbumDetail = () => {
                     </Typography>
                 </Box>
 
-                {/* Photos Grid */}
-                <MasonryGallery
-                    photos={photos}
-                    isLoading={isLoading}
-                    onPhotoClick={handlePhotoClick}
-                />
-
-                {/* Empty State */}
-                {!isLoading && photos.length === 0 && (
-                    <Box sx={{ textAlign: 'center', py: 8 }}>
-                        <Typography variant="h5" color="text.secondary">
-                            No photos in this album yet
-                        </Typography>
+                {/* Single Item Layout - large media with concept below */}
+                {photos.length === 1 ? (
+                    <Box
+                        component={motion.div}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                        sx={{ maxWidth: '1000px', mx: 'auto' }}
+                    >
+                        {photos[0].mediaType === 'video' && photos[0].youtubeUrl ? (
+                            <Box
+                                sx={{
+                                    width: '100%',
+                                    aspectRatio: '16/9',
+                                    borderRadius: 2,
+                                    overflow: 'hidden',
+                                    mb: 3,
+                                }}
+                            >
+                                <iframe
+                                    width="100%"
+                                    height="100%"
+                                    src={`https://www.youtube.com/embed/${photos[0].youtubeUrl.match(/(?:youtu\.be\/|v=)([^&]+)/)?.[1]}?autoplay=1&mute=1&rel=0`}
+                                    title={photos[0].title}
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                />
+                            </Box>
+                        ) : (
+                            <Box
+                                component="img"
+                                src={photos[0].url}
+                                alt={photos[0].title}
+                                sx={{
+                                    width: '100%',
+                                    borderRadius: 2,
+                                    mb: 3,
+                                }}
+                            />
+                        )}
+                        {photos[0].concept && (
+                            <Typography
+                                variant="body1"
+                                sx={{
+                                    color: 'text.secondary',
+                                    lineHeight: 1.8,
+                                    textAlign: 'center',
+                                }}
+                            >
+                                {photos[0].concept}
+                            </Typography>
+                        )}
                     </Box>
+                ) : (
+                    <>
+                        {/* Multi-item: Photos Grid */}
+                        <MasonryGallery
+                            photos={photos}
+                            isLoading={isLoading}
+                            onPhotoClick={handlePhotoClick}
+                        />
+
+                        {/* Empty State */}
+                        {!isLoading && photos.length === 0 && (
+                            <Box sx={{ textAlign: 'center', py: 8 }}>
+                                <Typography variant="h5" color="text.secondary">
+                                    No photos in this album yet
+                                </Typography>
+                            </Box>
+                        )}
+                    </>
                 )}
 
                 {/* Lightbox */}

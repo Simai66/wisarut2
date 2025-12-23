@@ -178,16 +178,18 @@ export const Lightbox = ({
                                 width: '100%',
                                 height: '100%',
                                 display: 'flex',
-                                flexDirection: 'column',
+                                flexDirection: { xs: 'column', md: 'row' },
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 p: { xs: 2, md: 4 },
+                                gap: 4,
                             }}
                         >
+                            {/* Media Container */}
                             <Box sx={{
                                 position: 'relative',
-                                width: '100%',
-                                maxWidth: '90vw',
+                                flex: currentPhoto.concept ? '0 0 auto' : 1,
+                                maxWidth: currentPhoto.concept ? { xs: '100%', md: '65%' } : '90vw',
                                 maxHeight: '80vh',
                                 display: 'flex',
                                 justifyContent: 'center',
@@ -196,7 +198,7 @@ export const Lightbox = ({
                                 {currentPhoto.mediaType === 'video' && currentPhoto.youtubeUrl ? (
                                     <Box sx={{
                                         width: '100%',
-                                        maxWidth: '1200px',
+                                        maxWidth: '1000px',
                                         aspectRatio: '16/9',
                                         bgcolor: 'black',
                                     }}>
@@ -227,26 +229,76 @@ export const Lightbox = ({
                                 )}
                             </Box>
 
-                            {/* Photo Info */}
-                            <Box sx={{ mt: 3, textAlign: 'center', color: 'white', maxWidth: '800px' }}>
-                                <Typography variant="h6" sx={{ fontWeight: 600 }}>{currentPhoto.title}</Typography>
-
-                                {currentPhoto.concept && (
-                                    <Typography variant="body1" sx={{ opacity: 0.9, mt: 1, whiteSpace: 'pre-line' }}>
+                            {/* Concept Sidebar (Right) */}
+                            {currentPhoto.concept && !isMobile && (
+                                <Box sx={{
+                                    width: { md: '300px' },
+                                    maxWidth: '300px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'center',
+                                    alignItems: 'flex-start',
+                                    color: 'white',
+                                    p: 2,
+                                }}>
+                                    <Typography
+                                        variant="h6"
+                                        sx={{
+                                            fontWeight: 600,
+                                            mb: 2,
+                                            borderBottom: '2px solid rgba(255,255,255,0.3)',
+                                            pb: 1,
+                                            width: '100%',
+                                        }}
+                                    >
+                                        {currentPhoto.title}
+                                    </Typography>
+                                    <Typography
+                                        variant="body1"
+                                        sx={{
+                                            opacity: 0.9,
+                                            lineHeight: 1.8,
+                                            whiteSpace: 'pre-line',
+                                        }}
+                                    >
                                         {currentPhoto.concept}
                                     </Typography>
-                                )}
+                                </Box>
+                            )}
 
-                                {currentPhoto.description && !currentPhoto.concept && (
-                                    <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
-                                        {currentPhoto.description}
+                            {/* Title and Counter (shown below on mobile or if no concept) */}
+                            {(isMobile || !currentPhoto.concept) && (
+                                <Box sx={{ textAlign: 'center', color: 'white', maxWidth: '800px' }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 600 }}>{currentPhoto.title}</Typography>
+
+                                    {currentPhoto.concept && (
+                                        <Typography variant="body2" sx={{ opacity: 0.9, mt: 1, whiteSpace: 'pre-line' }}>
+                                            {currentPhoto.concept}
+                                        </Typography>
+                                    )}
+
+                                    <Typography variant="caption" sx={{ opacity: 0.5, mt: 2, display: 'block' }}>
+                                        {currentIndex + 1} / {photos.length}
                                     </Typography>
-                                )}
+                                </Box>
+                            )}
 
-                                <Typography variant="caption" sx={{ opacity: 0.5, mt: 2, display: 'block' }}>
+                            {/* Counter for desktop with concept */}
+                            {!isMobile && currentPhoto.concept && (
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        position: 'absolute',
+                                        bottom: 20,
+                                        left: '50%',
+                                        transform: 'translateX(-50%)',
+                                        color: 'white',
+                                        opacity: 0.5,
+                                    }}
+                                >
                                     {currentIndex + 1} / {photos.length}
                                 </Typography>
-                            </Box>
+                            )}
                         </Box>
                     </AnimatePresence>
                 </Box>

@@ -181,7 +181,7 @@ async function getAlbums(db) {
     const result = await db.prepare(`
         SELECT 
             a.*,
-            COALESCE(a.cover_url, (
+            COALESCE(NULLIF(a.cover_url, ''), (
                 SELECT p.url FROM photos p 
                 WHERE p.album_id = a.id 
                 ORDER BY p."order" ASC LIMIT 1

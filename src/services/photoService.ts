@@ -3,7 +3,7 @@
  */
 import type { Photo, PhotoFormData } from '@/types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://photo-api.sirarom12285.workers.dev';
+const API_URL = import.meta.env.VITE_API_URL || 'https://photo-api.photo-wisarut.workers.dev';
 
 /**
  * Get all photos with optional filters
