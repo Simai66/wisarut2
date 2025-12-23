@@ -177,13 +177,29 @@ async function deletePhoto(db, id) {
 // ==================== ALBUMS ====================
 
 async function getAlbums(db) {
-    const result = await db.prepare('SELECT * FROM albums ORDER BY "order" ASC').all();
+    // Optimized query: get albums with photo count and first photo URL in single query
+    const result = await db.prepare(`
+        SELECT 
+            a.*,
+            COALESCE(a.cover_url, (
+                SELECT p.url FROM photos p 
+                WHERE p.album_id = a.id 
+                ORDER BY p."order" ASC LIMIT 1
+            ), '') as computed_cover,
+            (SELECT COUNT(*) FROM photos p WHERE p.album_id = a.id) as photo_count
+        FROM albums a
+        ORDER BY a."order" ASC
+    `).all();
 
     const albums = result.results.map(a => ({
-        ...a,
-        coverUrl: a.cover_url,
+        id: a.id,
+        name: a.name,
+        description: a.description || '',
+        coverUrl: a.computed_cover || a.cover_url || '',
+        order: a.order || 0,
         isPublic: Boolean(a.is_public),
         createdAt: a.created_at,
+        photoCount: a.photo_count || 0,
     }));
 
     return jsonResponse({ albums });

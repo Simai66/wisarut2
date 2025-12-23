@@ -1,63 +1,70 @@
-import { useEffect, useCallback } from 'react';
-import { Box, Container, Typography, Grid } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { Box, Container, Typography, Grid, CircularProgress, Button, Alert } from '@mui/material';
+import { Refresh } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { MasonryGallery } from '@/components/gallery/MasonryGallery';
-import { SearchBar } from '@/components/gallery/SearchBar';
-import { AlbumFilter } from '@/components/gallery/AlbumFilter';
-import { Lightbox } from '@/components/gallery/Lightbox';
-import { usePhotos } from '@/hooks/usePhotos';
+import { AlbumCard } from '@/components/gallery/AlbumCard';
 import { useAlbums } from '@/hooks/useAlbums';
-import { useLightbox } from '@/hooks/useLightbox';
-import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { getAlbumRoute } from '@/config/routes';
 
 /**
- * Gallery page component
+ * Gallery page component - Shows albums for selection
  */
 export const Gallery = () => {
-    const {
-        photos,
-        filters,
-        isLoading,
-        hasMore,
-        loadMore,
-        applyFilters,
-        fetchPhotos,
-    } = usePhotos();
-    const { albums } = useAlbums();
-    const lightbox = useLightbox();
+    // useAlbums already fetches on mount - no need for additional useEffect
+    const { albums, isLoading, error, refetch } = useAlbums();
+    const navigate = useNavigate();
 
-    // Infinite scroll
-    const { loadMoreRef } = useInfiniteScroll({
-        loading: isLoading,
-        hasMore,
-        onLoadMore: loadMore,
-    });
+    const handleAlbumClick = (albumId: string) => {
+        navigate(getAlbumRoute(albumId));
+    };
 
-    // Initial fetch
-    useEffect(() => {
-        fetchPhotos(true);
-    }, [fetchPhotos]);
+    // Show loading state
+    if (isLoading && albums.length === 0) {
+        return (
+            <Box
+                sx={{
+                    height: '60vh',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'background.default',
+                }}
+            >
+                <CircularProgress color="primary" />
+            </Box>
+        );
+    }
 
-    const handleSearch = useCallback(
-        (query: string) => {
-            applyFilters({ searchQuery: query });
-        },
-        [applyFilters]
-    );
+    // Show error state with retry
+    if (error && albums.length === 0) {
+        return (
+            <Box
+                sx={{
+                    height: '60vh',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'background.default',
+                    gap: 2,
+                }}
+            >
+                <Alert severity="error" sx={{ mb: 2 }}>
+                    {error}
+                </Alert>
+                <Button
+                    variant="contained"
+                    startIcon={<Refresh />}
+                    onClick={() => refetch()}
+                >
+                    Try Again
+                </Button>
+            </Box>
+        );
+    }
 
-    const handleAlbumChange = useCallback(
-        (albumId: string | null) => {
-            applyFilters({ albumId });
-        },
-        [applyFilters]
-    );
-
-    const handlePhotoClick = useCallback(
-        (index: number) => {
-            lightbox.open(photos, index);
-        },
-        [lightbox, photos]
-    );
+    // Filter only public albums
+    const publicAlbums = albums.filter(album => album.isPublic);
 
     return (
         <Box sx={{ py: 4 }}>
@@ -77,54 +84,34 @@ export const Gallery = () => {
                         Photo Gallery
                     </Typography>
                     <Typography variant="body1" color="text.secondary" sx={{ mt: 2, maxWidth: 600, mx: 'auto' }}>
-                        Explore my collection of photographs. Use the search and filter options to find what you're looking for.
+                        Select an album to explore the collection
                     </Typography>
                 </Box>
 
-                {/* Filters */}
-                <Box
-                    component={motion.div}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, delay: 0.1 }}
-                    sx={{ mb: 4 }}
-                >
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} md={8}>
-                            <SearchBar
-                                onSearch={handleSearch}
-                                initialValue={filters.searchQuery}
-                                placeholder="Search by title or tags..."
+                {/* Album Grid */}
+                <Grid container spacing={3}>
+                    {publicAlbums.map((album, index) => (
+                        <Grid item key={album.id} xs={12} sm={6} md={4} lg={3}>
+                            <AlbumCard
+                                album={album}
+                                index={index}
+                                onClick={() => handleAlbumClick(album.id)}
                             />
                         </Grid>
-                        <Grid item xs={12} md={4}>
-                            <AlbumFilter
-                                albums={albums}
-                                selectedAlbumId={filters.albumId}
-                                onAlbumChange={handleAlbumChange}
-                            />
-                        </Grid>
-                    </Grid>
-                </Box>
+                    ))}
+                </Grid>
 
-                {/* Gallery Grid */}
-                <MasonryGallery
-                    photos={photos}
-                    isLoading={isLoading}
-                    onPhotoClick={handlePhotoClick}
-                    loadMoreRef={loadMoreRef}
-                    hasMore={hasMore}
-                />
-
-                {/* Lightbox */}
-                <Lightbox
-                    isOpen={lightbox.isOpen}
-                    photos={lightbox.photos}
-                    currentIndex={lightbox.currentIndex}
-                    onClose={lightbox.close}
-                    onNext={lightbox.next}
-                    onPrev={lightbox.prev}
-                />
+                {/* Empty State */}
+                {!isLoading && publicAlbums.length === 0 && !error && (
+                    <Box sx={{ textAlign: 'center', py: 8 }}>
+                        <Typography variant="h5" color="text.secondary">
+                            No albums available yet
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                            Check back soon for new content
+                        </Typography>
+                    </Box>
+                )}
             </Container>
         </Box>
     );
