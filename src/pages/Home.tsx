@@ -6,6 +6,7 @@ import {
     Typography,
     Button,
     Grid,
+    CircularProgress,
 } from '@mui/material';
 import { ArrowForward } from '@mui/icons-material';
 import { motion } from 'framer-motion';
@@ -45,6 +46,22 @@ export const Home = () => {
 
     const isLoading = photosLoading || isContentLoading;
 
+    if (isContentLoading) {
+        return (
+            <Box
+                sx={{
+                    height: '100vh',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'background.default',
+                }}
+            >
+                <CircularProgress color="primary" />
+            </Box>
+        );
+    }
+
     return (
         <Box>
             {/* Hero Section */}
@@ -63,7 +80,7 @@ export const Home = () => {
                     overflow: 'hidden',
                 }}
             >
-                {/* Background Image */}
+                {/* Background Media */}
                 <Box
                     sx={{
                         position: 'absolute',
@@ -71,12 +88,87 @@ export const Home = () => {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        backgroundImage: `url(${homeContent.heroBackgroundUrl})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        filter: 'brightness(0.4)',
+                        zIndex: 0,
                     }}
-                />
+                >
+                    {(() => {
+                        const url = homeContent.heroBackgroundUrl;
+                        const getVideoId = (url: string) => {
+                            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+                            const match = url.match(regExp);
+                            return (match && match[2].length === 11) ? match[2] : null;
+                        };
+                        const youtubeId = getVideoId(url);
+                        const isVideoFile = url.match(/\.(mp4|webm|ogg)$/i);
+
+                        if (youtubeId) {
+                            return (
+                                <Box
+                                    sx={{
+                                        width: '100%',
+                                        height: '100%',
+                                        pointerEvents: 'none',
+                                        overflow: 'hidden',
+                                    }}
+                                >
+                                    <iframe
+                                        width="100%"
+                                        height="100%"
+                                        src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&controls=0&start=0&loop=1&playlist=${youtubeId}&playsinline=1&showinfo=0&rel=0&iv_load_policy=3&disablekb=1&modestbranding=1`}
+                                        title="Hero Video"
+                                        frameBorder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        style={{
+                                            objectFit: 'cover',
+                                            width: '100%',
+                                            height: '100%',
+                                            transform: 'scale(1.5)', // Zoom in slightly to hide controls/edges
+                                        }}
+                                    />
+                                </Box>
+                            );
+                        } else if (isVideoFile) {
+                            return (
+                                <Box
+                                    component="video"
+                                    autoPlay
+                                    muted
+                                    loop
+                                    playsInline
+                                    src={url}
+                                    sx={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                    }}
+                                />
+                            );
+                        } else {
+                            return (
+                                <Box
+                                    sx={{
+                                        width: '100%',
+                                        height: '100%',
+                                        backgroundImage: `url(${url})`,
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                    }}
+                                />
+                            );
+                        }
+                    })()}
+                    {/* Overlay to ensure text readability */}
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: 'rgba(0,0,0,0.5)', // consistent overlay
+                        }}
+                    />
+                </Box>
 
                 {/* Hero Content */}
                 <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>

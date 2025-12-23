@@ -116,6 +116,9 @@ async function getPhotos(db, params) {
         tags: JSON.parse(p.tags || '[]'),
         albumId: p.album_id,
         createdAt: p.created_at,
+        mediaType: p.media_type || 'image',
+        youtubeUrl: p.youtube_url || '',
+        concept: p.concept || '',
     }));
 
     return jsonResponse({ photos });
@@ -123,16 +126,20 @@ async function getPhotos(db, params) {
 
 async function createPhoto(db, data) {
     const id = generateId();
-    const { url, thumbnail, title = '', description = '', albumId = '', tags = [], order = 0 } = data;
+    const { url, thumbnail, title = '', description = '', albumId = '', tags = [], order = 0, mediaType = 'image', youtubeUrl = '', concept = '' } = data;
 
-    if (!url) {
-        return errorResponse('URL is required');
+    if (!url && mediaType !== 'video') {
+        return errorResponse('URL is required for images');
+    }
+
+    if (mediaType === 'video' && !youtubeUrl) {
+        return errorResponse('YouTube URL is required for videos');
     }
 
     await db.prepare(`
-        INSERT INTO photos (id, url, thumbnail, title, description, album_id, tags, "order")
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(id, url, thumbnail || url, title, description, albumId, JSON.stringify(tags), order).run();
+        INSERT INTO photos (id, url, thumbnail, title, description, album_id, tags, "order", media_type, youtube_url, concept)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(id, url || '', thumbnail || url || '', title, description, albumId, JSON.stringify(tags), order, mediaType, youtubeUrl, concept).run();
 
     return jsonResponse({ id, success: true }, 201);
 }
@@ -148,6 +155,9 @@ async function updatePhoto(db, id, data) {
     if (data.albumId !== undefined) { updates.push('album_id = ?'); bindings.push(data.albumId); }
     if (data.tags !== undefined) { updates.push('tags = ?'); bindings.push(JSON.stringify(data.tags)); }
     if (data.order !== undefined) { updates.push('"order" = ?'); bindings.push(data.order); }
+    if (data.mediaType !== undefined) { updates.push('media_type = ?'); bindings.push(data.mediaType); }
+    if (data.youtubeUrl !== undefined) { updates.push('youtube_url = ?'); bindings.push(data.youtubeUrl); }
+    if (data.concept !== undefined) { updates.push('concept = ?'); bindings.push(data.concept); }
 
     if (updates.length === 0) {
         return errorResponse('No fields to update');

@@ -4,5 +4,5 @@ compatibility_date = "2024-01-01"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "photo-gallery"
-database_id = "7d6f21a5-3518-4e42-879d-13e6d3753945"
+database_name = "photo-db-prod"
+database_id = "9c6853fc-3189-4405-9fb5-f0d8a2343037"

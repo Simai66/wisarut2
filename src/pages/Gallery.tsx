@@ -65,9 +65,9 @@ export const Gallery = () => {
                 {/* Header */}
                 <Box
                     component={motion.div}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
+                    transition={{ duration: 0.4 }}
                     sx={{ textAlign: 'center', mb: 6 }}
                 >
                     <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.2em' }}>
@@ -84,9 +84,9 @@ export const Gallery = () => {
                 {/* Filters */}
                 <Box
                     component={motion.div}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.1 }}
+                    transition={{ duration: 0.35, delay: 0.1 }}
                     sx={{ mb: 4 }}
                 >
                     <Grid container spacing={2}>

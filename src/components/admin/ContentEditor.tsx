@@ -203,11 +203,11 @@ export const ContentEditor = () => {
                                 helperText="Description text below the title"
                             />
                             <TextField
-                                label="Hero Background Image URL"
+                                label="Hero Background URL (Image or Video)"
                                 fullWidth
                                 value={homeContent.heroBackgroundUrl}
                                 onChange={(e) => setHomeContent({ ...homeContent, heroBackgroundUrl: e.target.value })}
-                                helperText="URL of the background image (e.g., ImgBB or Unsplash link)"
+                                helperText="URL of image or YouTube/MP4 video for hero background"
                             />
                             <TextField
                                 label="Hero Button Text"

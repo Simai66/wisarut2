@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS photos (
     "order" INTEGER DEFAULT 0,
     width INTEGER,
     height INTEGER,
+    media_type TEXT DEFAULT 'image',
+    youtube_url TEXT DEFAULT '',
+    concept TEXT DEFAULT '',
     created_at TEXT DEFAULT (datetime('now'))
 );
 

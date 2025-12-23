@@ -20,12 +20,8 @@ import { defaultContactContent } from '@/types/content';
  * Contact page component with dynamic content
  */
 export const Contact = () => {
-    // Render instantly with defaults; then hydrate from Firestore in background.
-    const [content, setContent] = useState<ContactContent>(() => ({
-        ...defaultContactContent,
-        id: 'contact',
-        updatedAt: new Date(),
-    }));
+    const [content, setContent] = useState<ContactContent | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [formData, setFormData] = useState<ContactFormData>({
         name: '',
         email: '',
@@ -41,7 +37,14 @@ export const Contact = () => {
                 const data = await getContactContent();
                 setContent(data);
             } catch {
-                // keep defaults
+                // Use default on error
+                setContent({
+                    ...defaultContactContent,
+                    id: 'contact',
+                    updatedAt: new Date(),
+                });
+            } finally {
+                setIsLoading(false);
             }
         };
         fetchContent();
@@ -73,6 +76,22 @@ export const Contact = () => {
             setIsSubmitting(false);
         }
     };
+
+    if (isLoading || !content) {
+        return (
+            <Box
+                sx={{
+                    height: '100vh',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'background.default',
+                }}
+            >
+                <CircularProgress color="primary" />
+            </Box>
+        );
+    }
 
     const contactInfo = [
         {

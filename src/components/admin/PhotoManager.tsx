@@ -22,7 +22,7 @@ import {
     CircularProgress,
     Alert,
 } from '@mui/material';
-import { Edit, Delete, DragIndicator } from '@mui/icons-material';
+import { Edit, Delete, DragIndicator, PlayArrow } from '@mui/icons-material';
 import { AnimatePresence } from 'framer-motion';
 import {
     DndContext,
@@ -54,6 +54,7 @@ interface PhotoManagerProps {
 interface EditFormData {
     title: string;
     description: string;
+    concept: string;
     albumId: string;
     tags: string;
 }
@@ -110,13 +111,31 @@ const SortablePhotoCard = ({ photo, onEdit, onDelete }: SortablePhotoCardProps) 
                 >
                     <DragIndicator fontSize="small" color="action" />
                 </Box>
-                <CardMedia
-                    component="img"
-                    height="120"
-                    image={photo.thumbnail || photo.url}
-                    alt={photo.title}
-                    sx={{ objectFit: 'cover' }}
-                />
+                <Box sx={{ position: 'relative' }}>
+                    <CardMedia
+                        component="img"
+                        height="120"
+                        image={photo.thumbnail || photo.url}
+                        alt={photo.title}
+                        sx={{ objectFit: 'cover' }}
+                    />
+                    {photo.mediaType === 'video' && (
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                bgcolor: 'rgba(0,0,0,0.5)',
+                                borderRadius: '50%',
+                                p: 0.5,
+                                display: 'flex',
+                            }}
+                        >
+                            <PlayArrow sx={{ color: 'white' }} />
+                        </Box>
+                    )}
+                </Box>
                 <CardContent sx={{ flexGrow: 1, py: 1, px: 1.5 }}>
                     <Typography variant="body2" fontWeight={500} noWrap>
                         {photo.title || 'Untitled'}
@@ -159,6 +178,7 @@ export const PhotoManager = ({ albums, onRefetch, showSnackbar }: PhotoManagerPr
     const [editForm, setEditForm] = useState<EditFormData>({
         title: '',
         description: '',
+        concept: '',
         albumId: '',
         tags: '',
     });
@@ -237,6 +257,7 @@ export const PhotoManager = ({ albums, onRefetch, showSnackbar }: PhotoManagerPr
         setEditForm({
             title: photo.title,
             description: photo.description,
+            concept: photo.concept || '',
             albumId: photo.albumId || '',
             tags: photo.tags.join(', '),
         });
@@ -256,6 +277,7 @@ export const PhotoManager = ({ albums, onRefetch, showSnackbar }: PhotoManagerPr
             const updateData: Partial<PhotoFormData> = {
                 title: editForm.title,
                 description: editForm.description,
+                concept: editForm.concept,
                 albumId: editForm.albumId,
                 tags: editForm.tags.split(',').map(t => t.trim()).filter(Boolean),
             };
@@ -379,6 +401,15 @@ export const PhotoManager = ({ albums, onRefetch, showSnackbar }: PhotoManagerPr
                                 rows={2}
                                 value={editForm.description}
                                 onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                            />
+                            <TextField
+                                label="Concept / Note"
+                                fullWidth
+                                multiline
+                                rows={2}
+                                value={editForm.concept}
+                                onChange={(e) => setEditForm({ ...editForm, concept: e.target.value })}
+                                placeholder="Displayed under the media"
                             />
                             <FormControl fullWidth>
                                 <InputLabel>Album</InputLabel>

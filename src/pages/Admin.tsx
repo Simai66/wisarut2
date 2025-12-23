@@ -20,6 +20,7 @@ import { AlbumManager } from '@/components/admin/AlbumManager';
 import { PhotoManager } from '@/components/admin/PhotoManager';
 import { ContentEditor } from '@/components/admin/ContentEditor';
 import { ImgBBUploader } from '@/components/admin/ImgBBUploader';
+import { YouTubeAdder } from '@/components/admin/YouTubeAdder';
 import { useAlbums } from '@/hooks/useAlbums';
 import { useUIStore } from '@/stores/uiStore';
 import { createPhoto } from '@/services/photoService';
@@ -383,6 +384,14 @@ export const Admin = () => {
                                             {isBusy ? 'Adding...' : 'Add Photos'}
                                         </Button>
                                     </Box>
+                                </Box>
+
+                                <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 3 }}>
+                                    <YouTubeAdder
+                                        albums={albums}
+                                        onSuccess={refetchAlbums}
+                                        showSnackbar={setFeedback}
+                                    />
                                 </Box>
                             </Box>
                         </TabPanel>

@@ -81,6 +81,12 @@ export const Lightbox = ({
 
     if (!currentPhoto) return null;
 
+    const getVideoId = (url: string) => {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    };
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -159,7 +165,7 @@ export const Lightbox = ({
                         </>
                     )}
 
-                    {/* Image */}
+                    {/* Content */}
                     <AnimatePresence mode="wait">
                         <Box
                             component={motion.div}
@@ -169,34 +175,75 @@ export const Lightbox = ({
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.2 }}
                             sx={{
-                                maxWidth: '90vw',
-                                maxHeight: '85vh',
+                                width: '100%',
+                                height: '100%',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
+                                justifyContent: 'center',
+                                p: { xs: 2, md: 4 },
                             }}
                         >
-                            <Box
-                                component="img"
-                                src={currentPhoto.url}
-                                alt={currentPhoto.title}
-                                sx={{
-                                    maxWidth: '100%',
-                                    maxHeight: '80vh',
-                                    objectFit: 'contain',
-                                    borderRadius: 1,
-                                }}
-                            />
+                            <Box sx={{
+                                position: 'relative',
+                                width: '100%',
+                                maxWidth: '90vw',
+                                maxHeight: '80vh',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                            }}>
+                                {currentPhoto.mediaType === 'video' && currentPhoto.youtubeUrl ? (
+                                    <Box sx={{
+                                        width: '100%',
+                                        maxWidth: '1200px',
+                                        aspectRatio: '16/9',
+                                        bgcolor: 'black',
+                                    }}>
+                                        <iframe
+                                            width="100%"
+                                            height="100%"
+                                            src={`https://www.youtube.com/embed/${getVideoId(currentPhoto.youtubeUrl)}?autoplay=1&mute=1&playsinline=1&rel=0&controls=1`}
+                                            title={currentPhoto.title}
+                                            frameBorder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                            style={{ display: 'block' }}
+                                        />
+                                    </Box>
+                                ) : (
+                                    <Box
+                                        component="img"
+                                        src={currentPhoto.url}
+                                        alt={currentPhoto.title}
+                                        sx={{
+                                            maxWidth: '100%',
+                                            maxHeight: '80vh',
+                                            objectFit: 'contain',
+                                            borderRadius: 1,
+                                            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                                        }}
+                                    />
+                                )}
+                            </Box>
 
                             {/* Photo Info */}
-                            <Box sx={{ mt: 2, textAlign: 'center', color: 'white' }}>
-                                <Typography variant="h6">{currentPhoto.title}</Typography>
-                                {currentPhoto.description && (
+                            <Box sx={{ mt: 3, textAlign: 'center', color: 'white', maxWidth: '800px' }}>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>{currentPhoto.title}</Typography>
+
+                                {currentPhoto.concept && (
+                                    <Typography variant="body1" sx={{ opacity: 0.9, mt: 1, whiteSpace: 'pre-line' }}>
+                                        {currentPhoto.concept}
+                                    </Typography>
+                                )}
+
+                                {currentPhoto.description && !currentPhoto.concept && (
                                     <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
                                         {currentPhoto.description}
                                     </Typography>
                                 )}
-                                <Typography variant="caption" sx={{ opacity: 0.6, mt: 1, display: 'block' }}>
+
+                                <Typography variant="caption" sx={{ opacity: 0.5, mt: 2, display: 'block' }}>
                                     {currentIndex + 1} / {photos.length}
                                 </Typography>
                             </Box>

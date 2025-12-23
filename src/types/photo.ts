@@ -1,5 +1,10 @@
 /**
- * Photo entity representing an image in the gallery
+ * Media type for photos/videos
+ */
+export type MediaType = 'image' | 'video';
+
+/**
+ * Photo entity representing an image or video in the gallery
  */
 export interface Photo {
     id: string;
@@ -13,6 +18,12 @@ export interface Photo {
     order: number;
     width?: number;
     height?: number;
+    /** Type of media: image or video */
+    mediaType: MediaType;
+    /** YouTube video URL (only for videos) */
+    youtubeUrl?: string;
+    /** Concept/description text displayed under the media */
+    concept?: string;
 }
 
 /**
@@ -24,6 +35,9 @@ export interface PhotoFormData {
     albumId: string;
     tags: string[];
     order: number;
+    mediaType?: MediaType;
+    youtubeUrl?: string;
+    concept?: string;
 }
 
 /**
@@ -41,4 +55,7 @@ export interface PhotoDocument {
     order: number;
     width?: number;
     height?: number;
+    mediaType?: MediaType;
+    youtubeUrl?: string;
+    concept?: string;
 }

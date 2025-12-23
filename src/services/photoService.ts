@@ -3,7 +3,7 @@
  */
 import type { Photo, PhotoFormData } from '@/types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://photo-api.photo-wisarut.workers.dev';
+const API_URL = import.meta.env.VITE_API_URL || 'https://photo-api.sirarom12285.workers.dev';
 
 /**
  * Get all photos with optional filters
@@ -32,6 +32,9 @@ export const getPhotos = async (
         order: p.order as number || 0,
         width: p.width as number | undefined,
         height: p.height as number | undefined,
+        mediaType: (p.mediaType as string || p.media_type as string || 'image') as 'image' | 'video',
+        youtubeUrl: p.youtubeUrl as string || p.youtube_url as string || '',
+        concept: p.concept as string || '',
     }));
 
     return { photos, lastDoc: null };
@@ -71,6 +74,11 @@ export const getPhotosByAlbum = async (
         tags: (p.tags as string[]) || [],
         createdAt: new Date(p.createdAt as string || p.created_at as string || Date.now()),
         order: p.order as number || 0,
+        width: p.width as number | undefined,
+        height: p.height as number | undefined,
+        mediaType: (p.mediaType as string || p.media_type as string || 'image') as 'image' | 'video',
+        youtubeUrl: p.youtubeUrl as string || p.youtube_url as string || '',
+        concept: p.concept as string || '',
     }));
 
     return { photos, lastDoc: null };
@@ -94,7 +102,7 @@ export const searchPhotos = async (searchQuery: string): Promise<Photo[]> => {
  * Create a new photo
  */
 export const createPhoto = async (
-    photoData: PhotoFormData & { url: string; thumbnail: string }
+    photoData: PhotoFormData & { url?: string; thumbnail?: string }
 ): Promise<string> => {
     const response = await fetch(`${API_URL}/photos`, {
         method: 'POST',

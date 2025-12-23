@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Container, Typography, Grid, Chip, Paper } from '@mui/material';
+import { Box, Container, Typography, Grid, Chip, Paper, CircularProgress } from '@mui/material';
 import { CameraAlt, Landscape, Portrait, LocationOn } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { getAboutContent } from '@/services/contentService';
@@ -18,12 +18,8 @@ const iconMap: Record<string, React.ReactNode> = {
  * About page component with dynamic content
  */
 export const About = () => {
-    // Render instantly with defaults; then hydrate from Firestore in background.
-    const [content, setContent] = useState<AboutContent>(() => ({
-        ...defaultAboutContent,
-        id: 'about',
-        updatedAt: new Date(),
-    }));
+    const [content, setContent] = useState<AboutContent | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const fetchContent = async () => {
@@ -31,11 +27,34 @@ export const About = () => {
                 const data = await getAboutContent();
                 setContent(data);
             } catch {
-                // keep defaults
+                // Use default on error
+                setContent({
+                    ...defaultAboutContent,
+                    id: 'about',
+                    updatedAt: new Date(),
+                });
+            } finally {
+                setIsLoading(false);
             }
         };
         fetchContent();
     }, []);
+
+    if (isLoading || !content) {
+        return (
+            <Box
+                sx={{
+                    height: '100vh',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'background.default',
+                }}
+            >
+                <CircularProgress color="primary" />
+            </Box>
+        );
+    }
 
     return (
         <Box sx={{ py: 4 }}>
